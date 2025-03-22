@@ -1,0 +1,6 @@
+2024-08-04 22:29:57,369 - ATSCore.py[line:809] - INFO: [Order]NewOrder created: uid:short1
+2024-08-04 22:30:07,920 - ATSCore.py[line:332] - ERROR: 'DriverProcessor' object has no attribute 'GUI'
+Traceback (most recent call last):
+  File "D:\Projects\HJATS\HJATS\modules\ATSCore.py", line 327, in run
+    self.GUI.drawrestuls()
+AttributeError: 'DriverProcessor' object has no attribute 'GUI'
