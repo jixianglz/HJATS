@@ -1,14 +1,15 @@
 
 import Constants
 from AccountClient import AccountClient as Account
+import os
+import configparser
 import time
 import logging
 import platform
 ## here only for test
 
 ##
-from AccountClient import myaccountconfig,myaccountconfig2
-from dydx3 import constants
+
 from binance.error import ClientError
 
 class TradeClient(Account):
@@ -37,14 +38,14 @@ class TradeClient(Account):
             
         def check_balance(self):
                         
-            if(self.dexname=='dydx'):    
-                if(platform.system()=='Windows'):
-                    ret = self.dex_client.private.get_account(self.dydx_default_ethereum_address)                                
-                if(platform.system()=='Linux'):
-                    ret = self.dex_client.private.get_account(self.dydx_default_ethereum_address)
-                    ret = ret.data
-                balance=ret['account']['freeCollateral']         
-                return balance
+            #if(self.dexname=='dydx'):    
+            #    if(platform.system()=='Windows'):
+            #        ret = self.dex_client.private.get_account(self.dydx_default_ethereum_address)                                
+            #    if(platform.system()=='Linux'):
+            #        ret = self.dex_client.private.get_account(self.dydx_default_ethereum_address)
+            #        ret = ret.data
+            #    balance=ret['account']['freeCollateral']         
+            #    return balance
         
             if(self.dexname=='binance'):    
                 
@@ -162,9 +163,24 @@ class TradeClient(Account):
             return
         
 
+# 从config 文件导入 一个 account 实体，然后生产 交易管理实体
+configPath=os.getcwd() + r"/UserCase/"+'config.ini'     
         
-        
-        
+conf=configparser.ConfigParser()
+conf.read(configPath)
+dexname=conf.get('Dexinfo','dexname')
+  
+if dexname == 'binance':
+    binance_api_key=conf.get('Dexinfo','binance_api_key')
+    binance_api_secret=conf.get('Dexinfo','binance_api_secret')
+    binancekeydic={    
+        "binance_api_key":binance_api_key,
+        "binance_api_secret":binance_api_secret   
+        }
+  
+    myaccountconfig={"dex":dexname,
+                      "keys":binancekeydic,
+                      }        
         
         
         
@@ -173,32 +189,12 @@ class TradeClient(Account):
 
 if __name__ == '__main__':    
     
-    Test='2'
-    
-    if(Test=='1'):
-        treadClient=TradeClient(myaccountconfig)
-        treadClient2=TradeClient(myaccountconfig2)
-        
-        a=treadClient.check_balance()
-        b=treadClient2.check_balance()
-        #a=treadClient.check_position(code="BTC-USD")
-        #a=treadClient.order_get()
-        #a=treadClient.order_open(code="ETH-USD",oside='BUY',otype="MARKET",osize="0.01",oprice="1399")
-        
-        print(a)
-        print(b)
-        
-        #b=treadClient.order_get_by_id(a['order']['id'])
-        
-        #print(b["order"]["status"])
-    
-    #Check bianace
-    if(Test=='2'):
-        
-        treadClient=TradeClient(myaccountconfig)
-        treadClient.check_balance()
-        #treadClient.order_open(code='ETHUSDT',oside="LONG",otype='MARKET',osize="0.01",oaction="OPEN")
-        print(treadClient.order_get_by_symbol(symbol='ETHUSDT'))
+
+  
+      tradeClient=TradeClient(myaccountconfig)
+      tradeClient.check_balance()
+       #treadClient.order_open(code='ETHUSDT',oside="LONG",otype='MARKET',osize="0.01",oaction="OPEN")
+      print(tradeClient.order_get_by_symbol(symbol='ETHUSDT'))
     
     
     

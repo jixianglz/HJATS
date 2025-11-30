@@ -8,7 +8,6 @@ from web3 import Web3
 import logging
 import Constants
 import platform
-from binance.um_futures import UMFutures
 import os
 import configparser
 
@@ -18,34 +17,9 @@ import configparser
 
 ## binance keys
 
-binancekeydic={    
-    "binance_api_key":'gV197J8sk98FJPIg9GPeJ8ioaOwD776YMD52CaLKYPOVE1FiPt0lXA1MrD1RGz83',
-    "binance_api_secret":'boWu8BthROkTQq9Ul9eGUevehmRlX9U0UIJx45xdFK9ePB044hY6kztVnsXLwSo6'    
-    }
-     
-myaccountconfig={"dex":"dydx",
-                 "keys":dydxkeydic_main,
-                 }
-myaccountconfig2={"dex":"dydx",
-                 "keys":dydxkeydic_main_2,
-                 }
 
 
-configPath=os.getcwd() + r"/UserCase/"+'config.ini'
-conf=configparser.ConfigParser()
-conf.read(configPath)
-dexname=conf.get('Dexinfo','dexname')
 
-binance_api_key=conf.get('Dexinfo','binance_api_key')
-binance_api_secret=conf.get('Dexinfo','binance_api_secret')
-binancekeydic={    
-    "binance_api_key":binance_api_key,
-    "binance_api_secret":binance_api_secret   
-    }
-
-myaccountconfig={"dex":dexname,
-                  "keys":binancekeydic,
-                  }
 
 
 
@@ -63,6 +37,7 @@ class AccountClient(object):
         if(accountdic==None): logging.error("None Account infomation imported.")
         
         if(self.dexname=='dydx'):
+            #dydx v3 not support now
             from dydx3 import Client
             self.__dydx_stark_private_key=accountdic['keys']['stark_private_key']
             self.__dydx_stark_public_key=accountdic['keys']['stark_public_key']
@@ -104,6 +79,21 @@ class AccountClient(object):
     
 if __name__ == '__main__':    
     
-  
-    myaccount=AccountClient(myaccountconfig)
+      configPath=os.getcwd() + r"/UserCase/"+'config.ini'
+      conf=configparser.ConfigParser()
+      conf.read(configPath)
+      dexname=conf.get('Dexinfo','dexname')
+    
+      if dexname == 'binance':
+          binance_api_key=conf.get('Dexinfo','binance_api_key')
+          binance_api_secret=conf.get('Dexinfo','binance_api_secret')
+          binancekeydic={    
+              "binance_api_key":binance_api_key,
+              "binance_api_secret":binance_api_secret   
+              }
+        
+          myaccountconfig={"dex":dexname,
+                            "keys":binancekeydic,
+                            }
+      myaccount=AccountClient(myaccountconfig)
 
