@@ -12,28 +12,18 @@ import os
 import configparser
 
 
-
-#### Sugget to fetch from database
-
-## binance keys
-
-
-
-
-
-
-
-
 class AccountClient(object):
     
     def __init__(self,
                  accountdic=None
                  ):
+        
+        if accountdic==None:
+            accountdic = self.get_account_from_configfile()
+        
+        self.accountinfo = accountdic
         self.dexname=accountdic['dex']
-
-        
-        
-        
+     
         if(accountdic==None): logging.error("None Account infomation imported.")
         
         if(self.dexname=='dydx'):
@@ -73,27 +63,33 @@ class AccountClient(object):
             binance_api_key=accountdic['keys']['binance_api_key']
             binance_api_secret=accountdic['keys']['binance_api_secret']           
             self.dex_client = UMFutures(key=binance_api_key, secret=binance_api_secret)
+            
+    def get_account_from_configfile(self):
+        
+        # 从config 文件导入 一个 account 实体，然后生产 交易管理实体
+        configPath=os.getcwd() + r"/UserCase/"+'config.ini'     
+                
+        conf=configparser.ConfigParser()
+        conf.read(configPath)
+        dexname=conf.get('Dexinfo','dexname')
+          
+        if dexname == 'binance':
+            binance_api_key=conf.get('Dexinfo','binance_api_key')
+            binance_api_secret=conf.get('Dexinfo','binance_api_secret')
+            binancekeydic={    
+                "binance_api_key":binance_api_key,
+                "binance_api_secret":binance_api_secret   
+                }
+          
+            myaccountconfig={"dex":dexname,
+                              "keys":binancekeydic,
+                              }       
+        return myaccountconfig
+                
       
 
-            
-    
+# 实例    
 if __name__ == '__main__':    
     
-      configPath=os.getcwd() + r"/UserCase/"+'config.ini'
-      conf=configparser.ConfigParser()
-      conf.read(configPath)
-      dexname=conf.get('Dexinfo','dexname')
-    
-      if dexname == 'binance':
-          binance_api_key=conf.get('Dexinfo','binance_api_key')
-          binance_api_secret=conf.get('Dexinfo','binance_api_secret')
-          binancekeydic={    
-              "binance_api_key":binance_api_key,
-              "binance_api_secret":binance_api_secret   
-              }
-        
-          myaccountconfig={"dex":dexname,
-                            "keys":binancekeydic,
-                            }
-      myaccount=AccountClient(myaccountconfig)
+      myaccount=AccountClient()
 

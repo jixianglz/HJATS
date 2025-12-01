@@ -13,12 +13,15 @@ import platform
 from binance.error import ClientError
 
 class TradeClient(Account):
+    
         def __init__(self,accountdic=None):
             
             #Setting the accont 
             
             Account.__init__(self,accountdic)
-            print('Account and Pravite init in %s'%(accountdic['dex']))
+            
+            
+            #print('Account and Pravite init in %s'%(Account.accountdic['dex']))
             
         
             
@@ -58,7 +61,8 @@ class TradeClient(Account):
                         ret=self.dex_client.balance()
                         ret = ret.data
                     balance=ret[5]['balance']   
-                    logging.info(ret)
+                    #logging.info(ret)
+                    logging.info(f'[TreadClient:check balance = {balance} ]')
                     return balance
                 except ClientError as error:
                     logging.error(
@@ -163,35 +167,15 @@ class TradeClient(Account):
             return
         
 
-# 从config 文件导入 一个 account 实体，然后生产 交易管理实体
-configPath=os.getcwd() + r"/UserCase/"+'config.ini'     
-        
-conf=configparser.ConfigParser()
-conf.read(configPath)
-dexname=conf.get('Dexinfo','dexname')
-  
-if dexname == 'binance':
-    binance_api_key=conf.get('Dexinfo','binance_api_key')
-    binance_api_secret=conf.get('Dexinfo','binance_api_secret')
-    binancekeydic={    
-        "binance_api_key":binance_api_key,
-        "binance_api_secret":binance_api_secret   
-        }
-  
-    myaccountconfig={"dex":dexname,
-                      "keys":binancekeydic,
-                      }        
         
         
         
         
-        
-
+# 实例
 if __name__ == '__main__':    
     
 
-  
-      tradeClient=TradeClient(myaccountconfig)
+      tradeClient=TradeClient()
       tradeClient.check_balance()
        #treadClient.order_open(code='ETHUSDT',oside="LONG",otype='MARKET',osize="0.01",oaction="OPEN")
       print(tradeClient.order_get_by_symbol(symbol='ETHUSDT'))

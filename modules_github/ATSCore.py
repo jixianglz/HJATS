@@ -14,7 +14,8 @@ import ATSlog
 import numpy as np
 import pandas as pd
 from TradeClient import TradeClient
-from AccountClient import myaccountconfig,myaccountconfig2
+#from AccountClient import myaccountconfig,myaccountconfig2
+#from AccountClient import AccountClient
 from MarketClient import MarketClient 
 from FrontEnd import VisualClient as GUI
 import DBconnection as db
@@ -130,16 +131,21 @@ class DriverProcessor(threading.Thread):
             logging.info('[DB]mongodb_init_config'+dbconfig['user'])
         try:
             #1 连接市场API 和账号
-            if(myaccountconfig['dex']=='dydx'):
-                self.marketclient=MarketClient(dex_name=myaccountconfig['dex']) 
-                self.treadclientlong=TradeClient(myaccountconfig)
-                self.treadclientshort=TradeClient(myaccountconfig2)
-                self.treadclient=self.treadclientlong
-                initbalace=float(self.treadclientlong.check_balance())+float(self.treadclientshort.check_balance())
-            if(myaccountconfig['dex']=='binance'):
-                self.marketclient=MarketClient(dex_name=myaccountconfig['dex']) 
-                self.treadclient=TradeClient(myaccountconfig)
-                initbalace=float(self.treadclient.check_balance())
+            
+            #多账户例子
+            #if(myaccountconfig['dex']=='dydx'):
+            #    self.marketclient=MarketClient(dex_name=myaccountconfig['dex']) 
+            #    self.treadclientlong=TradeClient(myaccountconfig)
+            #    self.treadclientshort=TradeClient(myaccountconfig2)
+            #    self.treadclient=self.treadclientlong
+            #    initbalace=float(self.treadclientlong.check_balance())+float(self.treadclientshort.check_balance())
+            
+            # 默认从配置文件初始化账户
+            self.treadclient=TradeClient()
+            self.dexinfo = self.tradeClient.accountinfo['dex']
+            self.marketclient=MarketClient(dex_name=self.dexinfo) 
+            self.treadclient=TradeClient()
+            initbalace=float(self.treadclient.check_balance())
                 
             
             self.dataM.account['asset']=initbalace
