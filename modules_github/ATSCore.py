@@ -26,33 +26,58 @@ import pytz
 
 
 
-
 class ATSServer(threading.Thread):
-    def __init__(self):
+    ##控制台
+    
+    def __init__(self, ifautorun=1):
         threading.Thread.__init__(self)
-        self.msg_queue=queue.Queue(1)
-        self.daemon=True
-        self.derectlyRun=True
-        self.derectlyRunCount=1
+        self.msg_queue = queue.Queue(1)
+        self.daemon = False
+        self._stop_event = threading.Event()
+        
+        # 自动发送 start
+        if ifautorun == 1:
+            self.msg_queue.put('start', block=False)
+            print("✓ Auto-sent: start")
+    
     def run(self):
-        while True:
-            if(self.derectlyRun):
-                if(self.derectlyRunCount==1):
-                    msg='start'
-                    self.msg_queue.put(msg,block=False)
-                    self.derectlyRunCount=0
-                continue
-                             
-            msg=input("wait command\n")
-
+        """后台运行,不阻塞"""
+        print("ATSServer is running in background")
+        print("Use server.cmd('your_command') to send commands")
+        
+        while not self._stop_event.is_set():
             try:
-                self.msg_queue.put(msg,block=False)
-                print("success send message -->",msg)
-            except queue.Full as e:
-                print("msg queue is full, clear the queue")
-                self.msg_queue.queue.clear()
-            if msg=="break":
-                break
+                # 非阻塞检查消息
+                msg = self.msg_queue.get(timeout=0.5)
+                print(f"[Server] Received: {msg}")
+                
+                # 这里可以处理不同的命令
+                if msg == "exit":
+                    print("[Server] Exiting...")
+                    break
+                    
+            except queue.Empty:
+                continue
+        
+        print("[Server] Stopped")
+    
+    def cmd(self, command):
+        """发送命令 - 在 Spyder 中直接调用"""
+        try:
+            self.msg_queue.put(command, block=False)
+            print(f"✓ Command sent: {command}")
+            return True
+        except queue.Full:
+            print("✗ Queue full, clearing...")
+            self.msg_queue.queue.clear()
+            self.msg_queue.put(command, block=False)
+            print(f"✓ Command sent: {command}")
+            return True
+    
+    def stop(self):
+        """停止服务器"""
+        self._stop_event.set()
+        print("✓ Stop signal sent")
             
 
         
@@ -88,26 +113,6 @@ class DriverProcessor(threading.Thread):
         self.realtime_run_mode='FreqMode' #'TickMode' or 'FreqMode'
         
 
-        
-    def run32_abort(self,name):
-    
-        print(name,"is running ...")
-        
-        while self._running:
-            try:
-                print("wait recieve msg")
-                msg= self.msg_queue.get()
-                print("success receive mseeage ->",msg)
-                
-                self.timer.cancel()
-                self.timer=threading.Timer(10,self.stop_server,('NONE',))
-                self.timer.start()
-                print("Timer reseted\n")
-            
-            except queue.Empty as e:
-                print("Queue get time out , type break to exit.")
-        
-        
     def realtime_init(self): 
         # 获取默认配置文件数据
         self.conf.read(self.configPath)
@@ -1391,12 +1396,40 @@ class ThreadPool():
     def pooladd(self,thd):
         self.pool.append(thd)
     
-    
-     
-    
-if __name__ == '__main__':  
-    
 
+class ThreadManager:
+    """线程管理器"""
+    def __init__(self):
+        self.threads = {}
+    
+    def register(self, name, thread):
+        """注册线程"""
+        self.threads[name] = thread
+    
+    def show_all(self):
+        """显示所有注册的线程"""
+        print(f"\n已注册的线程 ({len(self.threads)}):")
+        for name, thread in self.threads.items():
+            print(f"  {name}: 存活={thread.is_alive()}, 守护={thread.daemon}")
+    
+    def get(self, name):
+        """获取指定线程"""
+        return self.threads.get(name)
+    
+    def stop_all(self):
+        """停止所有线程"""
+        for name, thread in self.threads.items():
+            if hasattr(thread, 'stop'):
+                thread.stop()
+                print(f"已停止: {name}")    
+
+
+
+debug =0    
+    
+if __name__ == '__main__' and debug ==1:  
+    
+    
     para={"Init_Balance":200,   #in USD
       "TimeStart":"2022-1-20T12:00:00.000Z",  #T表示分隔符，Z表示的是UTC.
       "TimeStop":"2022-2-19T16:00:00.000Z",   
@@ -1405,7 +1438,7 @@ if __name__ == '__main__':
       }
     DM1=DataManager() 
     #DM1.RemoteInit(para)
-    DM1.LocalInit(r'D:\Projects\HJATS\HJATS\modules\historydata\20220120_20220219_BTCUSD_15MINS.csv',para)
+    DM1.LocalInit(r'D:\JiXiang\HJATS\Main\modules_github\historydata\20220120_20220219_BTCUSD_15MINS.csv',para)
     #DM1.LocalInit(r'D:\Projects\HJATS\HJATS\modules\historydata\dataset2.csv',para)
     Thdpool=ThreadPool()
     DP1=DriverProcessor(threadID=1,name='DP1',qID=1,qname='Q1',qlength=1,DPtype="backtest",
