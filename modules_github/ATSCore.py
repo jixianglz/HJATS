@@ -14,6 +14,7 @@ import ATSlog
 import numpy as np
 import pandas as pd
 from TradeClient import TradeClient
+from Controller.ATSServerCore import ATSServerCore
 #from AccountClient import myaccountconfig,myaccountconfig2
 #from AccountClient import AccountClient
 from MarketClient import MarketClient 
@@ -24,60 +25,66 @@ import os
 import configparser
 import pytz
 
-
-
-class ATSServer(threading.Thread):
-    ##控制台
+class ATSServer(ATSServerCore):
+    def __init__(self, ifautorun=1, DataManager=None):
+        super().__init__(ifautorun=ifautorun, DataManager=DataManager)
+        return
     
-    def __init__(self, ifautorun=1):
-        threading.Thread.__init__(self)
-        self.msg_queue = queue.Queue(1)
-        self.daemon = False
-        self._stop_event = threading.Event()
-        
-        # 自动发送 start
-        if ifautorun == 1:
-            self.msg_queue.put('start', block=False)
-            print("✓ Auto-sent: start")
-    
-    def run(self):
-        """后台运行,不阻塞"""
-        print("ATSServer is running in background")
-        print("Use server.cmd('your_command') to send commands")
-        
-        while not self._stop_event.is_set():
-            try:
-                # 非阻塞检查消息
-                msg = self.msg_queue.get(timeout=0.5)
-                print(f"[Server] Received: {msg}")
-                
-                # 这里可以处理不同的命令
-                if msg == "exit":
-                    print("[Server] Exiting...")
-                    break
-                    
-            except queue.Empty:
-                continue
-        
-        print("[Server] Stopped")
-    
-    def cmd(self, command):
-        """发送命令 - 在 Spyder 中直接调用"""
-        try:
-            self.msg_queue.put(command, block=False)
-            print(f"✓ Command sent: {command}")
-            return True
-        except queue.Full:
-            print("✗ Queue full, clearing...")
-            self.msg_queue.queue.clear()
-            self.msg_queue.put(command, block=False)
-            print(f"✓ Command sent: {command}")
-            return True
-    
-    def stop(self):
-        """停止服务器"""
-        self._stop_event.set()
-        print("✓ Stop signal sent")
+# =============================================================================
+# 
+# class ATSServer(threading.Thread):
+#     ##控制台
+#     
+#     def __init__(self, ifautorun=1):
+#         threading.Thread.__init__(self)
+#         self.msg_queue = queue.Queue(1)
+#         self.daemon = False
+#         self._stop_event = threading.Event()
+#         
+#         # 自动发送 start
+#         if ifautorun == 1:
+#             self.msg_queue.put('start', block=False)
+#             print("✓ Auto-sent: start")
+#     
+#     def run(self):
+#         """后台运行,不阻塞"""
+#         print("ATSServer is running in background")
+#         print("Use server.cmd('your_command') to send commands")
+#         
+#         while not self._stop_event.is_set():
+#             try:
+#                 # 非阻塞检查消息
+#                 msg = self.msg_queue.get(timeout=0.5)
+#                 print(f"[Server] Received: {msg}")
+#                 
+#                 # 这里可以处理不同的命令
+#                 if msg == "exit":
+#                     print("[Server] Exiting...")
+#                     break
+#                     
+#             except queue.Empty:
+#                 continue
+#         
+#         print("[Server] Stopped")
+#     
+#     def cmd(self, command):
+#         """发送命令 - 在 Spyder 中直接调用"""
+#         try:
+#             self.msg_queue.put(command, block=False)
+#             print(f"✓ Command sent: {command}")
+#             return True
+#         except queue.Full:
+#             print("✗ Queue full, clearing...")
+#             self.msg_queue.queue.clear()
+#             self.msg_queue.put(command, block=False)
+#             print(f"✓ Command sent: {command}")
+#             return True
+#     
+#     def stop(self):
+#         """停止服务器"""
+#         self._stop_event.set()
+#         print("✓ Stop signal sent")
+# =============================================================================
             
 
         

@@ -1,0 +1,33 @@
+{
+    "last_command": null,
+    "last_run_time": "2025-12-07 21:40:28",
+    "running_state": "stopped",
+    "error_info": null,
+    "crash_info": null,
+    "restart_count": 0,
+    "last_heartbeat": "2025-12-07 21:40:28",
+    "account": {
+        "asset": 0,
+        "assetinit": 0,
+        "profit": 0,
+        "h_profit": 0,
+        "h_profit_long": 0,
+        "h_profit_short": 0
+    },
+    "orderpool": {},
+    "order_count": 0,
+    "last_order_id": 0,
+    "strategy": {
+        "iteration_count": 0,
+        "last_signal": null,
+        "indicators": {},
+        "order_statistic": {}
+    },
+    "data": {
+        "last_timestamp": null,
+        "data_length": 0,
+        "frequency": null,
+        "code": null
+    },
+    "user_data": {}
+}
