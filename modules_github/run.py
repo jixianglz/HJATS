@@ -1,4 +1,7 @@
+
 # -*- coding: utf-8 -*-
+
+
 """
 Created on Sat Feb 19 12:36:42 2022
 
@@ -18,7 +21,7 @@ def runbacktest():
     
     
     timeinterval = 0
-    visualizationswitch=True  # Can choice vilization for the figure
+    visualizationswitch=False  # Can choice vilization for the figure
     manager = Core.ThreadManager()
     
     para={"Init_Balance":200,   #in USD
@@ -41,6 +44,7 @@ def runbacktest():
     
     DP1=Core.DriverProcessor(threadID=1,name='DP1',qID=1,qname='Q1',qlength=1,DPtype="backtest",
                         msg_queue=ATS_Server.msg_queue,speed=timeinterval,DataManager=DM1,
+                        
                         visualization=visualizationswitch)
     manager.register("driverprocessor", DP1)
 

@@ -1,0 +1,90 @@
+2026-01-12 22:25:27,406 - ATSCore.py[line:795] - INFO: [Order]NewOrder created: uid:long1
+2026-01-12 22:25:27,411 - ATSCore.py[line:747] - ERROR: 'DataFrame' object has no attribute 'append'
+Traceback (most recent call last):
+  File "D:\JiXiang\HJATS\Main\modules_github\ATSCore.py", line 719, in run
+    self.orderframe=self.orderframe.append(orderSer)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\JiXiang\Spyder\envs\spyder-runtime\Lib\site-packages\pandas\core\generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2026-01-12 22:25:27,406 - ATSCore.py[line:795] - INFO: [Order]NewOrder created: uid:long1
+2026-01-12 22:25:27,411 - ATSCore.py[line:747] - ERROR: 'DataFrame' object has no attribute 'append'
+Traceback (most recent call last):
+  File "D:\JiXiang\HJATS\Main\modules_github\ATSCore.py", line 719, in run
+    self.orderframe=self.orderframe.append(orderSer)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\JiXiang\Spyder\envs\spyder-runtime\Lib\site-packages\pandas\core\generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2026-01-12 22:25:27,406 - ATSCore.py[line:795] - INFO: [Order]NewOrder created: uid:long1
+2026-01-12 22:25:27,411 - ATSCore.py[line:747] - ERROR: 'DataFrame' object has no attribute 'append'
+Traceback (most recent call last):
+  File "D:\JiXiang\HJATS\Main\modules_github\ATSCore.py", line 719, in run
+    self.orderframe=self.orderframe.append(orderSer)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\JiXiang\Spyder\envs\spyder-runtime\Lib\site-packages\pandas\core\generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2026-01-12 22:25:27,406 - ATSCore.py[line:795] - INFO: [Order]NewOrder created: uid:long1
+2026-01-12 22:25:27,411 - ATSCore.py[line:747] - ERROR: 'DataFrame' object has no attribute 'append'
+Traceback (most recent call last):
+  File "D:\JiXiang\HJATS\Main\modules_github\ATSCore.py", line 719, in run
+    self.orderframe=self.orderframe.append(orderSer)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\JiXiang\Spyder\envs\spyder-runtime\Lib\site-packages\pandas\core\generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2026-01-12 22:25:27,406 - ATSCore.py[line:795] - INFO: [Order]NewOrder created: uid:long1
+2026-01-12 22:25:27,411 - ATSCore.py[line:747] - ERROR: 'DataFrame' object has no attribute 'append'
+Traceback (most recent call last):
+  File "D:\JiXiang\HJATS\Main\modules_github\ATSCore.py", line 719, in run
+    self.orderframe=self.orderframe.append(orderSer)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\JiXiang\Spyder\envs\spyder-runtime\Lib\site-packages\pandas\core\generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2026-01-12 22:25:27,406 - ATSCore.py[line:795] - INFO: [Order]NewOrder created: uid:long1
+2026-01-12 22:25:27,411 - ATSCore.py[line:747] - ERROR: 'DataFrame' object has no attribute 'append'
+Traceback (most recent call last):
+  File "D:\JiXiang\HJATS\Main\modules_github\ATSCore.py", line 719, in run
+    self.orderframe=self.orderframe.append(orderSer)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\JiXiang\Spyder\envs\spyder-runtime\Lib\site-packages\pandas\core\generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2026-01-12 22:25:27,406 - ATSCore.py[line:795] - INFO: [Order]NewOrder created: uid:long1
+2026-01-12 22:25:27,411 - ATSCore.py[line:747] - ERROR: 'DataFrame' object has no attribute 'append'
+Traceback (most recent call last):
+  File "D:\JiXiang\HJATS\Main\modules_github\ATSCore.py", line 719, in run
+    self.orderframe=self.orderframe.append(orderSer)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\JiXiang\Spyder\envs\spyder-runtime\Lib\site-packages\pandas\core\generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2026-01-12 22:25:27,406 - ATSCore.py[line:795] - INFO: [Order]NewOrder created: uid:long1
+2026-01-12 22:25:27,411 - ATSCore.py[line:747] - ERROR: 'DataFrame' object has no attribute 'append'
+Traceback (most recent call last):
+  File "D:\JiXiang\HJATS\Main\modules_github\ATSCore.py", line 719, in run
+    self.orderframe=self.orderframe.append(orderSer)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\JiXiang\Spyder\envs\spyder-runtime\Lib\site-packages\pandas\core\generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2026-01-12 22:25:27,406 - ATSCore.py[line:795] - INFO: [Order]NewOrder created: uid:long1
+2026-01-12 22:25:27,411 - ATSCore.py[line:747] - ERROR: 'DataFrame' object has no attribute 'append'
+Traceback (most recent call last):
+  File "D:\JiXiang\HJATS\Main\modules_github\ATSCore.py", line 719, in run
+    self.orderframe=self.orderframe.append(orderSer)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\JiXiang\Spyder\envs\spyder-runtime\Lib\site-packages\pandas\core\generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?

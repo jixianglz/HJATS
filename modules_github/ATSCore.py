@@ -24,67 +24,14 @@ import logging
 import os
 import configparser
 import pytz
+from Atsfunc import print_colored
 
 class ATSServer(ATSServerCore):
     def __init__(self, ifautorun=1, DataManager=None):
         super().__init__(ifautorun=ifautorun, DataManager=DataManager)
         return
     
-# =============================================================================
-# 
-# class ATSServer(threading.Thread):
-#     ##控制台
-#     
-#     def __init__(self, ifautorun=1):
-#         threading.Thread.__init__(self)
-#         self.msg_queue = queue.Queue(1)
-#         self.daemon = False
-#         self._stop_event = threading.Event()
-#         
-#         # 自动发送 start
-#         if ifautorun == 1:
-#             self.msg_queue.put('start', block=False)
-#             print("✓ Auto-sent: start")
-#     
-#     def run(self):
-#         """后台运行,不阻塞"""
-#         print("ATSServer is running in background")
-#         print("Use server.cmd('your_command') to send commands")
-#         
-#         while not self._stop_event.is_set():
-#             try:
-#                 # 非阻塞检查消息
-#                 msg = self.msg_queue.get(timeout=0.5)
-#                 print(f"[Server] Received: {msg}")
-#                 
-#                 # 这里可以处理不同的命令
-#                 if msg == "exit":
-#                     print("[Server] Exiting...")
-#                     break
-#                     
-#             except queue.Empty:
-#                 continue
-#         
-#         print("[Server] Stopped")
-#     
-#     def cmd(self, command):
-#         """发送命令 - 在 Spyder 中直接调用"""
-#         try:
-#             self.msg_queue.put(command, block=False)
-#             print(f"✓ Command sent: {command}")
-#             return True
-#         except queue.Full:
-#             print("✗ Queue full, clearing...")
-#             self.msg_queue.queue.clear()
-#             self.msg_queue.put(command, block=False)
-#             print(f"✓ Command sent: {command}")
-#             return True
-#     
-#     def stop(self):
-#         """停止服务器"""
-#         self._stop_event.set()
-#         print("✓ Stop signal sent")
-# =============================================================================
+
             
 
         
@@ -265,7 +212,7 @@ class DriverProcessor(threading.Thread):
                 
     
     def run(self):
-        print('DP INIT')
+        print('[DP]DP INIT')
         
         if(self.DPtype=="realtime"):
             while not self.thread_stop:
@@ -287,19 +234,26 @@ class DriverProcessor(threading.Thread):
                 #time.sleep(2) 
                            
         if(self.DPtype=="backtest"):     
-             
+            import time as time_module  # 避免与sleep的time冲突 
+            start_time = time_module.time()  # 记录开始时间
             while not self.thread_stop:  
-                print("thread%d %s: waiting for tast" %(self.ident,self.name))  
+                print("[DP] In BackTestMode : Start")
+                print("[DP] thread%d %s: waiting for tast" %(self.ident,self.name))  
+                count =0
                 try:
+                    # dataset包含了所有从原始数据集合
                     for index,row in self.dataset.iterrows():
                         try:             
+                            #调整运行速率
                             time.sleep(self.speed)
                             
-                            #限定数据长度
+                            # 限定数据长度
+                            # storj 是传递给算法的数据，数据长度为maxlen, 收到新数据后会丢弃历史最后一个数据
                             if(len(self.dataM.storj)>=self.dataM.storj_maxlen):
                                 self.dataM.storj=self.dataM.storj.drop(str(self.dataM.storj.iloc[-1].name))
                                 
                             # 新数据在 Head
+                            # 插入新数据
                             self.dataM.storj=pd.concat([self.dataset.loc[[str(index)]],self.dataM.storj]) 
                                
                            
@@ -323,12 +277,16 @@ class DriverProcessor(threading.Thread):
                             
                                                           
                             
-                            print('\n-----------------------------------\n')
+                            #print(f'[DP]backTest,dataset index ={index}')
+                            
                             #回测速度调节
                             
                             self.queue.put(self.dataM.storj) 
-
+                            lastcloseprice = self.dataM.storj['close'].iloc[0]
+                            print_colored(f'[DP]BT RoundStart,Newvalue: index = {index},cprice = {lastcloseprice} ,Count={count}',bg_color='red')
                             
+                            count+=1
+                            self.queue.join()  #  等待消费者处理完这个数据
                            
                             
                         except Exception as e:
@@ -343,8 +301,11 @@ class DriverProcessor(threading.Thread):
                     self.thread_stop=True
                     if(self.thread_stop):
                         self.GUI.drawrestuls()
-                    print("BackTest engine finished.")
-                                        
+                    end_time = time_module.time()
+                    elapsed_time = end_time - start_time
+                    print("[DP]BackTest engine finished.")
+                    print(f"[DP]Total elapsed time: {elapsed_time:.2f} seconds ({elapsed_time/60:.2f} minutes)")
+                                                
                 except Exception as e:
                     print(e)
                     logging.exception(e)
@@ -366,19 +327,19 @@ class StrategyManager(threading.Thread):
         self.core=dpCore
         self.DPtype=self.core.DPtype
         self.eventdata=None
-        self.count=1
+        self.count=0
 
     def run(self):
-        print('ST INIT')
+        print('[SM]StrategyManager INIT')
         
         if(self.core.DPtype=="realtime"):
             while not self.thread_stop:  
-                print("[Strategy] - thread%d %s: waiting for data trg." %(self.ident,self.name))         
+                print("[SM]  %s: waiting for data trg." %(self.name))         
                 try:
                     
                     # 获得计算数据更新
                     self.task = self.queue.get()
-                    print('[Strategy] ----------Alg Task Come------------\n')  
+                    print('[SM] ----------Alg Task Come------------\n')  
                     
                     #Profit Asset 
                     self.ProfitCal()
@@ -439,17 +400,16 @@ class StrategyManager(threading.Thread):
         if(self.core.DPtype=="backtest"):     
             
             while not self.thread_stop:  
-                print("Strategy - thread%d %s: waiting for data trg." %(self.ident,self.name))  
+                print("[SM] %s: waiting for data trg." %(self.name))  
                 try:
-    
-                  
+
                     #event got            
                     self.task = self.queue.get()    # 如果队列空了，直接结束线程。根据具体场景不同可能不合理，可以修改
                     
                     #Profit Asset 
                     self.ProfitCal()
                   
-                    #signal cal run
+                    #调用外部算法和订单模块
                   
                     signal,indicators,indicators_w2=self.func(
                                                        interCount=self.count,
@@ -461,10 +421,15 @@ class StrategyManager(threading.Thread):
                                                        orderaccount=self.core.dataM.account,
                                                        order_statistic=self.core.dataM.order_statistic)
                      
+                    
+                    #funcion 运行完后给数据处理中间内存更新
+                    
+                    #更新信号记录数据
                     if(len(self.core.dataM.signal)>=self.core.dataM.max_signal_ind_lenth):
                         del(self.core.dataM.signal[0])                    
                     self.core.dataM.signal.append(signal)
                     
+                    #更新主指标和次要指标
                     for ind_index in indicators:
                         # 算法计算结果插入到Data管理器中 主窗口 需要 ind_index 内部dict Key与外部Key一致
                         if(len(self.core.dataM.indicators[ind_index])>=self.core.dataM.max_signal_ind_lenth):
@@ -480,19 +445,22 @@ class StrategyManager(threading.Thread):
                     #asset cal run
                     
                     
-                    print('Task %s Done at Count: %s' %(self.name,str(self.count)))  # 提示信息而已
+                    print('[SM]Task %s Done at Count: %s' %(self.name,str(self.count)))  # 提示信息而已
                     self.count+=1
 
                     if(self.core.thread_stop==True):
                         self.thread_stop=True
                         self.oderqueue.put("stop")   # 主进程结束，給Order get 抛出结束，结束阻塞
-                        print("StrateThreading Stoped")
+                        print("[SM]StrateThreading Stoped")
                         
                 except Exception as e:
                     print(e)
                     logging.exception(e)
                     break     
                 
+                finally:
+                    self.queue.task_done()  # ⭐ 告诉队列：我处理完了
+
     def func(*args,**kwargs):
 
         #print(args)
@@ -500,8 +468,7 @@ class StrategyManager(threading.Thread):
         from UserCase import signalAlg
         from UserCase import orderAlg
         if 'storj' in kwargs: 
-            print('[sAlg] SignalAlg got the task')      
-            interCount=kwargs['interCount']
+            interCount=kwargs['interCount'] 
             dataset=kwargs['storj']
             orderqueue=kwargs['orderqueue']
             orderpool=kwargs['orderpool']
@@ -514,10 +481,11 @@ class StrategyManager(threading.Thread):
             parapoll={}
             parapoll['dataset']=dataset
             parapoll['indicatorsdic']=indicatorsdic
-            parapoll['indicatorsdic_w2']=indicatorsdic_w2            
+            parapoll['indicatorsdic_w2']=indicatorsdic_w2    
+            print(f'[SM] SignalAlg: prepare to start....Runing count = {interCount}')
             signal,cur_ind_dic,w2_ind_dic=signalAlg.run(parapoll)
-            
-            print('[oAlg] OrderAlg got the task')  
+            print(f'[SM] SignalAlg: signal return sucess....Runing count = {interCount}')
+            print(f'[SM] OrderAlg: prepare to start....Runing count = {interCount}')  
             #set for order
             parapoll['c_signal']=signal 
             parapoll['orderpool']=orderpool
@@ -525,11 +493,12 @@ class StrategyManager(threading.Thread):
             parapoll['order_statistic']=order_statistic
             
             orderlist=orderAlg.run(parapoll)
+            print(f'[SM] OrderAlg: order descesion return sucess....Runing count = {interCount}')
             
             if(len(orderlist)!=0):
                 orderqueue.put(orderlist)
-                print('Get The order in count:%d'%interCount)
-                print('Order List:'+str(orderlist))
+                print(f'[SM] Get The order,sending message to OrderManager....Runing count = {interCount}')
+                print('[SM] Order List:'+str(orderlist))
             return signal,cur_ind_dic,w2_ind_dic
     
     def ProfitCal(self):
@@ -637,30 +606,30 @@ class OrderManager(threading.Thread):
                                              
 
     def run(self):
-        print('OderM INIT')
+        print('[OM]OderManager INIT')
         
         if(self.DPtype=="realtime"):   # 应该和backtest 一样
             count = 1
             while not self.thread_stop: 
-                print("[OrderManage] - thread%d %s: waiting for order trg." %(self.ident,self.name))  
+                print("[OM] %s: waiting for order trg." %(self.name))  
                 try:
                     ordertask_list = self.oderqueue.get()    # 如果队列空了，直接结束线程。根据具体场景不同可能不合理，可以修改
-                    print('[OrderManage]---------Order Task Come------------\n')  
+                    print('[OM]---------Order Task Come------------\n')  
                     if(ordertask_list=="stop"): #先检验st发出的推出阻塞指令
                         self.thread_stop=True
-                        print("order get block stop, OrderThreading exit")
+                        print("[OM]-order get block stop, OrderThreading exit")
                         continue
                     if(type(ordertask_list)!=list):
-                        print('error order type')                        
+                        print('[OM]-error order type')                        
                     if(len(ordertask_list)==0):
-                        print('no new order')
+                        print('[OM]-no new order')
                     if(len(ordertask_list)!=0):
-                        print('order handled')
+                        print('[OM]-order handled')
                         logging.debug(ordertask_list)
                         for i in range(0,len(ordertask_list)):
                     
                             ordertask=ordertask_list[i]
-                            logging.info('[OrderManager]:ordertask:'+str(ordertask))
+                            logging.info('[OM]:ordertask:'+str(ordertask))
                             # format the order from the alg
                             forder=self.formatOrder(ordertask)
                             self.debugorder=forder                                                                  
@@ -670,7 +639,7 @@ class OrderManager(threading.Thread):
                             if(ret==0): #无异常
                                 forder[5]=self.orderpool[forder[2]].status
                                 forder[11]=self.orderpool[forder[2]].dealprice
-                            logging.info('[OrderManager]:results:'+str(ret)+"_details:"+str(forder))
+                            logging.info('[OM]:results:'+str(ret)+"_details:"+str(forder))
                             
                             #record the order frame
                             #timeindex=self.core.core.dataM.storj.index[0]
@@ -693,8 +662,8 @@ class OrderManager(threading.Thread):
                             #    self.core.core.dataM.rawdata_show.loc[timeindex,'Signal']=ordertask['oside']                      
                                 #logging.info(ordertask['oside']+timeindex)  
                             self.orderID_inter+=1
-                    print('\n---------End of Order Task----------\n')  
-                    print('Order Task %s Done. Count: %s' %(self.name,str(count)))  # 提示信息而已
+                    print('[OM]---------End of Order Task----------\n')  
+                    print('[OM]Order Task %s Done. Count: %s' %(self.name,str(count)))  # 提示信息而已
                     count+=1        
                                     
                 except Exception as e:    
@@ -705,28 +674,27 @@ class OrderManager(threading.Thread):
         if(self.DPtype=="backtest"):     
             count = 1
             while not self.thread_stop:  
-                print("[OrderManage] - thread%d %s: waiting for order trg." %(self.ident,self.name))  
+                print("[OM] %s: waiting for order trg." %(self.name))  
                 try:
-                    print('[OrderManage]---------Order Task Comewarit------------\n') 
                     ordertask_list = self.oderqueue.get()    # 如果队列空了，直接结束线程。根据具体场景不同可能不合理，可以修改
-                    print('[OrderManage]---------Order Task Come------------\n')                      
+                    print('[OM]---------Order Task Come------------\n')                      
                     #order 合法性 检验
                     
                     if(ordertask_list=="stop"): #先检验st发出的推出阻塞指令
                         self.thread_stop=True
-                        print("order get block stop, OrderThreading exit")
+                        print("[OM]order get block stop, OrderThreading exit")
                         continue
                         
                     
                     if(type(ordertask_list)!=list):
-                        print('error order type')
+                        print('[OM]error order type')
                         
                     if(len(ordertask_list)==0):
-                        print('no new order')
+                        print('[OM]no new order')
 
                 
                     if(len(ordertask_list)!=0):
-                        print('order handled')
+                        print('[OM]order handled')
                         logging.debug(ordertask_list)
                         for i in range(0,len(ordertask_list)):
                         
@@ -762,14 +730,14 @@ class OrderManager(threading.Thread):
                             self.orderID_inter+=1
                                       
                     
-                    print('\n---------End of Order Task----------\n')  
+                    print('[OM]---------End of Order Task----------\n')  
                     
                     # 获得ordertask 类型分别处理
                     #time.sleep(random.random())  # 假设处理了一段时间
                     #外部func调用 or 内部func 调用
                     #self.func(storj=ordertask)
                                         
-                    print('Order Task %s Done. Count: %s' %(self.name,str(count)))  # 提示信息而已
+                    print('[OM]Order Task %s Done. Count: %s' %(self.name,str(count)))  # 提示信息而已
                     count+=1
                     #self.queue.task_done()  # oder 不需要阻塞， 下单后马上处理队列
    
@@ -803,7 +771,7 @@ class OrderManager(threading.Thread):
              order['oprice'], #10
              orderdealprice, #11
              #self.core.core.dataM.storj.head(2).close[1] #12, tickprice only for back test :backtest DP1 put 后马上更新第二次数据,此时已经是二次更新的数据
-             self.core.task.head(1).close[0]
+             self.core.task.head(1).close.iloc[0]
              ] 
         return raw
     
