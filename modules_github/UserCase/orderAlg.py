@@ -12,7 +12,7 @@ import numpy as np
 import time
 from Atsfunc import print_colored
 
-ordernum_limit=1000000
+ordernum_limit=5
 
 
 longid=1
@@ -50,7 +50,7 @@ def run(parapoll):
     print_colored('------------------order_account--------------------',bg_color=pclr)
     print_colored(account,bg_color=pclr)
     print_colored('------------------order_statistic--------------------',bg_color=pclr)
-    print_colored(order_statistic,bg_color=pclr)
+    #print_colored(order_statistic,bg_color=pclr)
     
     
     
@@ -62,7 +62,7 @@ def run(parapoll):
     ########### Handinlg the signal  and open ###############
 
 #####################################看多策略######################   
-    if(signal==1):   
+    if(signal==1 and ordernum_limit>0):   
 
 
         openpara={
@@ -79,6 +79,7 @@ def run(parapoll):
         orderlist.append(openpara)
         ordernum_limit=ordernum_limit-1
         longid+=1
+        ordernum_limit=ordernum_limit-1
         print(longid)
  
 

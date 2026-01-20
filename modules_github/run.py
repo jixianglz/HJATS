@@ -21,7 +21,7 @@ def runbacktest():
     
     
     timeinterval = 0
-    visualizationswitch=False  # Can choice vilization for the figure
+    visualizationswitch=True  # Can choice vilization for the figure
     manager = Core.ThreadManager()
     
     para={"Init_Balance":200,   #in USD

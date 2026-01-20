@@ -52,8 +52,12 @@ class DriverProcessor(threading.Thread):
         self.speed=speed
         self.dataM=DataManager
         self.visualization=visualization       
+        
+        # ⭐ 修改：始终初始化 GUI，即使可能不使用
         if(self.visualization==True):
             self.GUI=GUI()
+        else:
+            self.GUI=None  # ⭐ 显式设为 None
         self._running=True
         self.msg_queue=msg_queue
         self.msg_hold=None
@@ -263,7 +267,8 @@ class DriverProcessor(threading.Thread):
                             self.dataM.rawdata_show=pd.concat([self.dataM.rawdata_show,self.dataset.loc[[str(index)]]]) 
                             
                             # front endupdate
-                            if(self.visualization==True):
+                            #if(self.visualization==True):
+                            if self.visualization and self.GUI is not None:
                                 #self.GUI.update(self.dataM.rawdata_show,self.dataM.indicator_1)
                                 self.GUI.update(self.dataM.rawdata_show,
                                                 self.dataM.signal,
@@ -300,7 +305,8 @@ class DriverProcessor(threading.Thread):
                     
                     self.thread_stop=True
                     if(self.thread_stop):
-                        self.GUI.drawrestuls()
+                        if self.visualization and self.GUI is not None:
+                            self.GUI.drawrestuls()
                     end_time = time_module.time()
                     elapsed_time = end_time - start_time
                     print("[DP]BackTest engine finished.")
@@ -381,7 +387,12 @@ class StrategyManager(threading.Thread):
                                               name=timeindex)
                     
                     #self.core.dataM.df_profit_dbcollections=self.core.dataM.df_profit_dbcollections.concat(dbcollectionSer)
-                    self.core.dataM.df_profit_dbcollections=self.core.dataM.df_profit_dbcollections.append(dbcollectionSer)
+                    #self.core.dataM.df_profit_dbcollections=self.core.dataM.df_profit_dbcollections.append(dbcollectionSer)
+                    self.core.dataM.df_profit_dbcollections = pd.concat([
+                        self.core.dataM.df_profit_dbcollections, 
+                        dbcollectionSer.to_frame().T
+                    ])
+
                     self.core.dataM.database.df2collection(self.core.dataM.df_profit_dbcollections, self.core.dataM.database.namelist_of_collections[3])
                 
                     self.core.dataM.df_profit_dbcollections=self.core.dataM.df_profit_dbcollections.drop(self.core.dataM.df_profit_dbcollections.head(1).index)
@@ -441,9 +452,10 @@ class StrategyManager(threading.Thread):
                             del(self.core.dataM.indicators_w2[ind_index][0])
                         self.core.dataM.indicators_w2[ind_index].append(indicators_w2[ind_index])
                     
-                    
+                    # ⭐ 关键修改：等待订单队列处理完成
                     #asset cal run
-                    
+                    if not self.oderqueue.empty():
+                        self.oderqueue.join()  # 等待 OrderManager 处理完所有订单                    
                     
                     print('[SM]Task %s Done at Count: %s' %(self.name,str(self.count)))  # 提示信息而已
                     self.count+=1
@@ -617,6 +629,7 @@ class OrderManager(threading.Thread):
                     print('[OM]---------Order Task Come------------\n')  
                     if(ordertask_list=="stop"): #先检验st发出的推出阻塞指令
                         self.thread_stop=True
+                        self.oderqueue.task_done()  # ⭐ 添加
                         print("[OM]-order get block stop, OrderThreading exit")
                         continue
                     if(type(ordertask_list)!=list):
@@ -648,7 +661,8 @@ class OrderManager(threading.Thread):
                             
                             if(len(self.orderframe)>=self.core.core.dataM.max_orderframe_len):
                                 self.orderframe=self.orderframe.drop(self.orderframe.head(1).index) 
-                            self.orderframe=self.orderframe.append(orderSer)
+                            #self.orderframe=self.orderframe.append(orderSer)
+                            self.orderframe = pd.concat([self.orderframe, orderSer.to_frame().T])
                             
   
                             
@@ -682,6 +696,7 @@ class OrderManager(threading.Thread):
                     
                     if(ordertask_list=="stop"): #先检验st发出的推出阻塞指令
                         self.thread_stop=True
+                        self.oderqueue.task_done()  # ⭐ 添加
                         print("[OM]order get block stop, OrderThreading exit")
                         continue
                         
@@ -707,6 +722,7 @@ class OrderManager(threading.Thread):
                             
                             
                             
+                            
                             #prcess the orcer 
                             ret=self.processOrder(forder)
                             
@@ -716,7 +732,9 @@ class OrderManager(threading.Thread):
                             #timeindex=self.core.core.dataM.storj.index[1]  #:backtest DP1 put 后马上更新第二次数据,此时已经是二次更新的数据
                             timeindex=self.core.task.index[0]
                             orderSer=pd.Series(index=self.orderframe.columns,data=forder,name=timeindex)
-                            self.orderframe=self.orderframe.append(orderSer)
+                            #self.orderframe=self.orderframe.append(orderSer)
+                            # ⭐ 修改：使用 concat 替代 append
+                            self.orderframe = pd.concat([self.orderframe, orderSer.to_frame().T])
                             
                             # Make the copy to the datamanager
                             self.core.core.dataM.orderframe=self.orderframe
@@ -746,6 +764,8 @@ class OrderManager(threading.Thread):
                     print(e)
                     logging.exception(e)
                     break
+                finally:
+                    self.oderqueue.task_done()  # ⭐ 添加：通知订单处理完成
                 
     def formatOrder(self,order):
         
@@ -784,29 +804,32 @@ class OrderManager(threading.Thread):
              
         if(self.DPtype=="backtest" or self.DPtype=="realtime" ):
             
-            print("Order Processing......")
+            print("[OM]Order Processing......")
             
 
             if(oaction=='OPEN'):
-               
+                
+                # 如果是新的Order ID ,先创建一个oder
                 if ouid not in self.orderpool:
 
-                    print('Creating New order:%s' %ouid)
-                    logging.info('[Order]NewOrder created: uid:%s' %ouid)                    
+                    print(f'[OM][{oaction}]Creating New order:%s' %ouid)
+                    logging.info('[OM]NewOrder created: uid:%s' %ouid)                    
                     
                     NewOrder=OrderInstance(forder,dex=dexname,dpCore=self.core.core)
                     self.orderpool[ouid]=NewOrder
                     self.order_statistic['totalnumber']+=1
                     self.order_statistic['holding_num']+=1
+                 
                     #return 0
                 
+                # oder 开仓方向检验 方向不对 # 0x3
                 if self.orderpool[ouid].side != oside:
-                    print('order side name is not Match!')
-                    logging.error('order side name is not Match!')
+                    print('[OM]order side name is not Match!')
+                    logging.error('[OM]order side name is not Match!')
                     
                     return 0x3  
                 
-                
+           
                 ret=self.orderpool[ouid].incPosition(forder)
                 return ret
                 
@@ -814,14 +837,14 @@ class OrderManager(threading.Thread):
                
                 if ouid not in self.orderpool:
 
-                    print('[Order]The order is not in Pool:%s' %ouid)
-                    logging.error('[Order]The order is not in Pool: uid:%s' %ouid)                    
+                    print(f'[OM][{oaction}]The order is not in Pool:%s' %ouid)
+                    logging.error('[OM]The order is not in Pool: uid:%s' %ouid)                    
                              
                     return 0x4
                 
                 if self.orderpool[ouid].side != oside:
-                    print('order side name is not Match!')
-                    logging.error('order side name is not Match!')
+                    print('[OM]order side name is not Match!')
+                    logging.error('[OM]order side name is not Match!')
                     return 0x3            
                 closeprofit,ret=self.orderpool[ouid].decPosition(forder) 
                 self.core.core.dataM.account['asset']=self.core.core.dataM.account['asset']+closeprofit
@@ -844,7 +867,7 @@ class OrderManager(threading.Thread):
                 
                 return ret
             
-            logging.error('[OrderInstance]DecreaseOrder Do nothing!') 
+            logging.error('[OM]DecreaseOrder Do nothing!') 
             ret=0x1  #0x1  订单 open close 异常: 无处理
             
         return ret
