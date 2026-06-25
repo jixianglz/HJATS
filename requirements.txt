@@ -1,0 +1,13 @@
+# HJATS 依赖
+pandas>=1.3.0
+numpy>=1.21.0
+pymongo>=4.0.0
+python-dotenv>=1.0.0
+matplotlib>=3.5.0
+PyQt5>=5.15.0
+
+# Binance 合约 API
+binance-futures-connector>=1.0.0
+
+# 可选: dydx 支持 (当前已移除)
+# dydx-v3-python>=1.0.0

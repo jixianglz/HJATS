@@ -1,0 +1,84 @@
+"""
+交易系统常量定义
+"""
+
+# ------------ 交易所 API URLs ------------
+DYDX_API_HOST_MAINNET = 'https://api.dydx.exchange'
+DYDX_API_HOST_ROPSTEN = 'https://api.stage.dydx.exchange'
+
+# ------------ Ethereum Network IDs ------------
+NETWORK_ID_MAINNET = 1
+NETWORK_ID_ROPSTEN = 3
+
+# ------------ RPC ------------
+RPC_ETH_PROVIDER_URL = 'https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'
+RPC_ETH_ROPSTEN_PROVIDER_URL = 'https://ropsten.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'
+
+# ------------ 交易品种 ------------
+SYMBOL_BTC_USD = 'BTC-USD'
+SYMBOL_ETH_USD = 'ETH-USD'
+SYMBOL_LINK_USD = 'LINK-USD'
+SYMBOL_AAVE_USD = 'AAVE-USD'
+SYMBOL_UNI_USD = 'UNI-USD'
+SYMBOL_SOL_USD = 'SOL-USD'
+SYMBOL_DOT_USD = 'DOT-USD'
+SYMBOL_DOGE_USD = 'DOGE-USD'
+SYMBOL_MATIC_USD = 'MATIC-USD'
+SYMBOL_ADA_USD = 'ADA-USD'
+SYMBOL_ATOM_USD = 'ATOM-USD'
+SYMBOL_LTC_USD = 'LTC-USD'
+
+# ------------ 时间周期 ------------
+FREQ_1MIN = "1MIN"
+FREQ_5MINS = "5MINS"
+FREQ_15MINS = "15MINS"
+FREQ_30MINS = "30MINS"
+FREQ_1HOUR = "1HOUR"
+FREQ_4HOURS = "4HOURS"
+FREQ_1DAY = "1DAY"
+
+# ------------ 时间频率与秒的映射 ------------
+FREQ_TO_SECONDS = {
+    "1MIN": 60,
+    "5MINS": 300,
+    "15MINS": 900,
+    "30MINS": 1800,
+    "1HOUR": 3600,
+    "4HOURS": 14400,
+    "1DAY": 86400,
+}
+
+# ------------ 订单状态 ------------
+ORDER_STATUS_PENDING = "PENDING"
+ORDER_STATUS_SUCCESS = "SUCCESS"
+ORDER_STATUS_FAILED = "FAILED"
+ORDER_STATUS_FILLED = "FILLED"
+ORDER_STATUS_CANCELED = "CANCELED"
+ORDER_STATUS_NA = "NA"
+
+# ------------ 订单操作 ------------
+ORDER_ACTION_OPEN = "OPEN"
+ORDER_ACTION_CLOSE = "CLOSE"
+
+# ------------ 订单方向 ------------
+ORDER_SIDE_LONG = "LONG"
+ORDER_SIDE_SHORT = "SHORT"
+
+# ------------ 订单类型 ------------
+ORDER_TYPE_MARKET = "MARKET"
+ORDER_TYPE_LIMIT = "LIMIT"
+
+# ------------ 回测默认参数 ------------
+DEFAULT_INIT_BALANCE = 1000
+DEFAULT_STORJ_MAXLEN = 100
+DEFAULT_MAX_SIGNAL_IND_LEN = 100
+DEFAULT_MAX_ORDERFRAME_LEN = 20
+DEFAULT_MAX_AP_LEN = 100
+
+# ------------ 错误码 ------------
+ERR_SUCCESS = 0x0
+ERR_ORDER_NO_ACTION = 0x1
+ERR_ORDER_OPEN_FAILED = 0x2
+ERR_ORDER_SIDE_MISMATCH = 0x3
+ERR_ORDER_NOT_IN_POOL = 0x4
+ERR_ORDER_SIZE_EXCEED = 0x6
