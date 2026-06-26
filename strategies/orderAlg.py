@@ -1,92 +1,144 @@
 """
-订单算法 - 用户自定义订单生成逻辑
+订单算法 - 双均线策略订单管理
+
+逻辑:
+  - signal=1 (金叉): 平空 → 开多
+  - signal=-1 (死叉): 平多 → 开空
+  - signal=0: 持仓不动
+
+注意事项:
+  - 交易对固定为 ETH-USD
+  - 每次开仓 0.01 ETH（适配小资金 $100 级别）
+  - 通过 orderpool 判断当前持仓方向
 
 接口:
     run(parapoll) -> orderlist
-
-参数:
-    parapoll['dataset']: DataFrame, 最新N根K线
-    parapoll['c_signal']: int, 当前信号值
-    parapoll['orderpool']: dict, 当前订单池
-    parapoll['orderaccount']: dict, 当前账户状态
-    parapoll['order_statistic']: dict, 当前订单统计
-
-返回:
-    orderlist: list[dict], 订单列表，每单格式:
-        {'uid': str, 'code': str, 'oaction': str, 'oside': str,
-         'otype': str, 'osize': str, 'oprice': str}
 """
 import logging
 from src.utils.helpers import print_colored
 
 logger = logging.getLogger(__name__)
 
-# 订单计数器（策略运行期间保持状态）
-_order_counters = {'long': 1, 'short': 1}
-_order_num_limit = 5
-
 
 def run(parapoll):
     """
     订单算法入口
 
-    示例策略: 收到信号后开仓，每次开0.1个ETH
-    signal=1: 开LONG
-    signal=-1: 开SHORT (或平多)
-    """
-    global _order_counters, _order_num_limit
+    Args:
+        parapoll['c_signal']: 当前信号 (1/0/-1)
+        parapoll['orderpool']: 当前订单池 {uid: OrderInstance}
+        parapoll['orderaccount']: 账户状态 {'asset': float}
 
+    Returns:
+        orderlist: list[dict], 订单列表
+    """
     dataset = parapoll['dataset']
     signal = parapoll['c_signal']
     orderpool = parapoll['orderpool']
     account = parapoll['orderaccount']
-    order_statistic = parapoll['order_statistic']
 
-    tick_last_close = str(dataset.iloc[0]['close'])
+    tick_last_close = float(dataset.iloc[0]['close'])
     orderlist = []
 
-    print_colored('[oAlg] Order algorithm started', bg_color='blue')
+    # === 判断当前持仓方向 ===
+    has_long = False
+    has_short = False
+    open_long_uid = None
+    open_short_uid = None
 
-    # 检查账户余额
+    for uid, order in orderpool.items():
+        if order.side == 'LONG' and order.size > 0:
+            has_long = True
+            open_long_uid = uid
+        if order.side == 'SHORT' and order.size > 0:
+            has_short = True
+            open_short_uid = uid
+
+    # === 资金检查 ===
     asset = account.get('asset', 0)
     if asset <= 0:
         print_colored('[oAlg] Insufficient balance', bg_color='blue')
         return orderlist
 
-    # 处理信号
-    if signal == 1 and _order_num_limit > 0:
-        # 开多
-        order = {
-            'uid': f"long{_order_counters['long']}",
+    print_colored(f'[oAlg] Signal={signal}, LONG={has_long}, SHORT={has_short}, '
+                  f'close={tick_last_close:.2f}, balance=${asset:.2f}',
+                  bg_color='blue')
+
+    # === 金叉信号: signal=1 → 开多(或平空换多) ===
+    if signal == 1:
+        # 如果持有多单，不动
+        if has_long:
+            print_colored('[oAlg] Already LONG, hold', bg_color='blue')
+            return orderlist
+
+        # 如果持有空单，先平空
+        if has_short:
+            close_order = {
+                'uid': open_short_uid,
+                'code': 'ETH-USD',
+                'oaction': 'CLOSE',
+                'oside': 'SHORT',
+                'otype': 'MARKET',
+                'osize': str(orderpool[open_short_uid].size),
+                'oprice': str(tick_last_close),
+            }
+            orderlist.append(close_order)
+            print_colored(f'[oAlg] CLOSE SHORT: {open_short_uid}', bg_color='blue')
+
+        # 开多（固定 0.01 ETH，适配 100U 本金）
+        size = 0.01
+        open_order = {
+            'uid': 'ma_long_1',
             'code': 'ETH-USD',
             'oaction': 'OPEN',
             'oside': 'LONG',
             'otype': 'MARKET',
-            'osize': '0.1',
-            'oprice': str(float(tick_last_close) + 20),  # 略高于市价确保成交
+            'osize': str(size),
+            'oprice': str(tick_last_close + 5),  # +5 确保市价成交
         }
-        orderlist.append(order)
-        _order_counters['long'] += 1
-        _order_num_limit -= 1
-        print_colored(f'[oAlg] OPEN LONG: {order["uid"]}', bg_color='blue')
+        orderlist.append(open_order)
+        print_colored(f'[oAlg] 🟢 OPEN LONG: 0.01 ETH @ ~${tick_last_close:.2f}',
+                      bg_color='blue', bold=True)
 
-    elif signal == -1 and _order_num_limit > 0:
+    # === 死叉信号: signal=-1 → 开空(或平多换空) ===
+    elif signal == -1:
+        # 如果持有空单，不动
+        if has_short:
+            print_colored('[oAlg] Already SHORT, hold', bg_color='blue')
+            return orderlist
+
+        # 如果持有多单，先平多
+        if has_long:
+            close_order = {
+                'uid': open_long_uid,
+                'code': 'ETH-USD',
+                'oaction': 'CLOSE',
+                'oside': 'LONG',
+                'otype': 'MARKET',
+                'osize': str(orderpool[open_long_uid].size),
+                'oprice': str(tick_last_close),
+            }
+            orderlist.append(close_order)
+            print_colored(f'[oAlg] CLOSE LONG: {open_long_uid}', bg_color='blue')
+
         # 开空
-        order = {
-            'uid': f"short{_order_counters['short']}",
+        size = 0.01
+        open_order = {
+            'uid': 'ma_short_1',
             'code': 'ETH-USD',
             'oaction': 'OPEN',
             'oside': 'SHORT',
             'otype': 'MARKET',
-            'osize': '0.1',
-            'oprice': str(float(tick_last_close) - 20),  # 略低于市价确保成交
+            'osize': str(size),
+            'oprice': str(tick_last_close - 5),  # -5 确保市价成交
         }
-        orderlist.append(order)
-        _order_counters['short'] += 1
-        _order_num_limit -= 1
-        print_colored(f'[oAlg] OPEN SHORT: {order["uid"]}', bg_color='blue')
+        orderlist.append(open_order)
+        print_colored(f'[oAlg] 🔴 OPEN SHORT: 0.01 ETH @ ~${tick_last_close:.2f}',
+                      bg_color='blue', bold=True)
+
+    # === 无信号 ===
+    else:
+        print_colored(f'[oAlg] No signal, hold current position', bg_color='blue')
 
     print_colored(f'[oAlg] Orders generated: {len(orderlist)}', bg_color='blue')
-    print_colored('[oAlg] Order algorithm ended', bg_color='blue')
-
     return orderlist
