@@ -276,7 +276,8 @@ class LiveEngine:
                             "entry_price": current_price,
                             "open_time": datetime.now().strftime("%H:%M:%S"),
                         }
-                        self.status.add_order({
+                        self.order_pool[order["uid"]] = {"uid":order["uid"],"side":oside,"size":osize,"entry_price":current_price,"open_time":datetime.now().strftime("%H:%M:%S")}
+                    self.status.add_order({
                             "time": datetime.now().strftime("%H:%M:%S"),
                             "action": "OPEN", "side": oside,
                             "size": osize, "price": current_price,
@@ -298,10 +299,8 @@ class LiveEngine:
                         pos_size = pos.get("size", osize)
                         profit = (current_price - entry) * pos_size if oside == "LONG" else (entry - current_price) * pos_size
                         self.balance += profit
-                        # 移除已平仓的订单
-                        if order["uid"] in self.order_pool:
-                            del self.order_pool[order["uid"]]
-                        self.status.add_order({
+                        self.order_pool[order["uid"]] = {"uid":order["uid"],"side":oside,"size":osize,"entry_price":current_price,"open_time":datetime.now().strftime("%H:%M:%S")}
+                    self.status.add_order({
                             "time": datetime.now().strftime("%H:%M:%S"),
                             "action": "CLOSE", "side": oside,
                             "size": osize, "price": current_price,
@@ -358,7 +357,7 @@ class LiveEngine:
         try:
             # 1. 获取最新价格
             candles = self.market.get_price_v1(
-                code=self.code, count=1, frequency=self.frequency
+                code=self.code, count=1, frequency="1m"
             )
             if candles is not None and len(candles) > 0:
                 current_price = float(candles.iloc[-1]["close"])
