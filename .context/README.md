@@ -13,6 +13,7 @@
 | [`ROADMAP.md`](./ROADMAP.md) | 未来计划、待办事项、需求池 | 中 |
 | [`STRATEGIES.md`](./STRATEGIES.md) | 当前交易策略说明 + 开发指南 | 中（策略变更时） |
 | [`API_REFERENCE.md`](./API_REFERENCE.md) | 核心类/方法速查 | 中 |
+| [`TESTING.md`](./TESTING.md) | 测试指南（16 test, 4 files） | 中 |
 | [`COMMANDS.md`](./COMMANDS.md) | 常用命令速查 | 低 |
 | [`CONTEXT_CURSOR.md`](./CONTEXT_CURSOR.md) | **AI 入口文件** — AI 接管时首先读取 | **高** |
 

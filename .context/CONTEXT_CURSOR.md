@@ -118,3 +118,4 @@ python scripts/report_generator.py \
 - `STRATEGIES.md` — 策略开发指南
 - `API_REFERENCE.md` — 核心 API 速查
 - `COMMANDS.md` — 命令速查
+- `TESTING.md` — 测试指南（16 tests）

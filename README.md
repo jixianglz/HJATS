@@ -577,4 +577,24 @@ orderAlg.run({'c_signal':signal, 'orderpool':pool, 'orderaccount':acct}) → [or
 3. **大功能开发前** → 先更新 `ROADMAP.md` 再开始编码
 4. **发现问题** → 更新 `CURRENT_STATUS.md` 的"已知问题"表格
 
+
+---
+
+## 十五、测试
+
+项目使用 **pytest** 框架，当前 16 个测试覆盖核心模块。
+
+```bash
+# 运行全部测试
+PYTHONPATH=. python3 -m pytest tests/ -v
+
+# 带覆盖率
+PYTHONPATH=. python3 -m pytest tests/ --cov=src --cov=strategies
+
+# 只跑单个文件
+PYTHONPATH=. python3 -m pytest tests/test_order.py -v
+```
+
+详见 [.context/TESTING.md](.context/TESTING.md)
+
 *最后更新: 2026-06-27*
