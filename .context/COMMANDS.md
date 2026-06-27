@@ -113,7 +113,7 @@ git diff
 git check-ignore .env
 ```
 
-## 测试（计划中）
+## 测试
 
 ```bash
 # 运行所有测试

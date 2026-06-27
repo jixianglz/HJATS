@@ -1,0 +1,26 @@
+# HJATS 路线图
+
+> 最后更新: 2026-06-27
+
+## 短期目标（1-2周）
+
+### 🔴 高优先级
+
+- [x] **Git 初始化 + 首次提交**
+  - 初始化 Git 仓库
+  - 清理敏感文件（检查 .env 是否被跟踪）✅ 未被跟踪，安全
+  - 添加 `.context/` 到仓库
+- [x] **清理技术债务**
+  - 更新 Inittxt.txt 空文件 → 已填充导航内容
+  - 清理 modules_github/log.log
+  - 确保 .gitignore 覆盖所有敏感文件 ✅ 已确认 .env 被忽略
+- [ ] **单元测试框架搭建**
+  - 引入 pytest
+  - 为 src/data/market.py 写测试
+  - 为 strategies/signalAlg.py 写测试
+  - 为 strategies/orderAlg.py 写测试
+  - 为 run_backtest.py 引擎写集成测试
+
+### 🟡 中优先级
+
+- [ ] **实盘模式验证**

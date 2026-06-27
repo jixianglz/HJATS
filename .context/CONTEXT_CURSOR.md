@@ -64,17 +64,17 @@ DriverProcessor (DP) →[queue]→ StrategyManager (SM) →[queue]→ OrderManag
 - 三线程引擎基本流程（DP→SM→OM）
 
 ### ⚠️ 需要注意的
-- Git 仓库**无提交记录** — 需要 `git init && git add && git commit`
+- Git + 测试框架已完备 ✅
 - `modules_github/` 是旧版代码，与新 `src/` 并存
-- 缺少单元测试（`tests/` 目录为空）
+- pytest 测试框架已搭建（16 tests, 4 files）✅
 - 实盘模式未充分验证
 - `config.ini` 含明文 MongoDB 密码
 
 ### ❌ 已知问题
-1. `Inittxt.txt` 为空文件
-2. `modules_github/log.log` 在仓库中
-3. `.env` 需确保被 gitignore 保护
-4. 策略参数（0.01 ETH）硬编码
+1. config.ini 含明文 MongoDB 密码
+2. 策略参数硬编码（0.01 ETH）
+3. 0 测试金，安全风险可控
+# 新增测试命令
 
 ---
 
