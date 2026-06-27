@@ -31,7 +31,7 @@ HJATS_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__f
 if HJATS_PATH not in sys.path:
     sys.path.insert(0, HJATS_PATH)
 
-from src.engine.live_status import LiveStatus
+from src.engine.live_status import LiveStatus, STATUS_FILE
 from src.broker.binance_broker import BinanceBroker
 from src.data.market import MarketClient
 from src.utils.helpers import print_colored
@@ -380,7 +380,7 @@ class LiveEngine:
     def run_forever(self):
         """主线程阻塞，等待停止信号"""
         print_colored("[LiveEngine] 引擎已进入运行状态", bg_color="blue")
-        print_colored(f"  状态文件: {LiveStatus.STATUS_FILE}", bg_color="blue")
+        print_colored(f"  状态文件: {STATUS_FILE}", bg_color="blue")
         print_colored("  使用 live_status.py 查看当前状态", bg_color="blue")
         print_colored("  使用 Ctrl+C 停止", bg_color="blue")
         try:
