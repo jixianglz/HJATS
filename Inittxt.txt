@@ -1,1 +1,8 @@
-nothing here
+HJATS - High-frequency Jik Automated Trading System
+
+项目文档和上下文信息请查看 .context/ 目录:
+  .context/CONTEXT_CURSOR.md  — AI 入口文件（AI 工具首先读取）
+  .context/PROJECT_SUMMARY.md — 项目概要
+  .context/ARCHITECTURE.md    — 架构说明
+  .context/CURRENT_STATUS.md  — 当前状态
+  .context/COMMANDS.md        — 常用命令

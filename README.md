@@ -21,6 +21,7 @@
 - [十一、手机查看报告](#十一手机查看报告)
 - [十二、配置文件说明](#十二配置文件说明)
 - [十三、环境变量与安全](#十三环境变量与安全)
+- [十四、项目上下文 (.context) 使用指南](#十四项目上下文-context-使用指南)
 
 ---
 
@@ -499,4 +500,81 @@ orderAlg.run({'c_signal':signal, 'orderpool':pool, 'orderaccount':acct}) → [or
 
 ---
 
-*最后更新: 2026-06-26*
+---
+
+## 十四、项目上下文 (.context) 使用指南
+
+> 从 v2.0.0 开始，HJATS 在 `.context/` 目录维护项目上下文信息，
+> 帮助 **AI 工具（Cline、Cursor 等）和开发者** 快速理解项目全貌，
+> 解决 AI 会话丢失后上下文不连续的问题。
+
+### 目录结构
+
+```
+.context/
+├── README.md              ← 目录导航（从这开始）
+├── PROJECT_SUMMARY.md     ← 项目概览、目录结构、当前策略
+├── ARCHITECTURE.md        ← 三线程管道架构详解
+├── CURRENT_STATUS.md      ← 各模块完成度 ✅/⚠️/❌ + 已知问题
+├── CHANGELOG.md           ← 按时间倒序的版本历史
+├── ROADMAP.md             ← 短期/中期/长期计划 + 需求池
+├── STRATEGIES.md          ← 当前双均线策略 + 新策略开发指南
+├── API_REFERENCE.md       ← 核心类/方法/CLI 速查表
+├── COMMANDS.md            ← 常用命令行速查
+└── CONTEXT_CURSOR.md      ← 🏁 **AI 入口文件**
+```
+
+### 使用场景
+
+#### 场景1：AI 会话被删除，新的 AI 重新接入
+
+```
+1. AI 先读取 .context/CONTEXT_CURSOR.md   ← 3分钟理解全貌
+2. 需要深入了解某方面，再读对应文件
+   例如：查架构 → ARCHITECTURE.md
+   例如：改策略 → STRATEGIES.md
+   例如：查命令 → COMMANDS.md
+```
+
+#### 场景2：开发者日常使用
+
+```
+1. 想了解项目进度 → 看 CURRENT_STATUS.md
+2. 想知道最新变更 → 看 CHANGELOG.md
+3. 想开发新功能   → 看 ROADMAP.md + ARCHITECTURE.md
+4. 想开发新策略   → 看 STRATEGIES.md
+```
+
+#### 场景3：每次功能变更后
+
+```
+1. 更新 CURRENT_STATUS.md     ← 修改模块状态
+2. 更新 CHANGELOG.md          ← 记录变更内容
+3. 如果改了架构   → 更新 ARCHITECTURE.md
+4. 如果改了策略   → 更新 STRATEGIES.md
+5. 如果改了 API   → 更新 API_REFERENCE.md
+6. 更新 CONTEXT_CURSOR.md     ← 保持摘要最新
+```
+
+### 维护规则
+
+| 文件 | 维护频率 | 谁维护 |
+|------|---------|--------|
+| `CURRENT_STATUS.md` | 🔴 每次变更 | 开发者 / AI |
+| `CHANGELOG.md` | 🔴 每次变更 | 开发者 / AI |
+| `CONTEXT_CURSOR.md` | 🔴 每次变更 | 开发者 / AI |
+| `ARCHITECTURE.md` | 🟡 架构变更 | 开发者 |
+| `STRATEGIES.md` | 🟡 策略变更 | 开发者 |
+| `API_REFERENCE.md` | 🟡 API 变更 | 开发者 |
+| `ROADMAP.md` | 🟢 按需 | 开发者 |
+| `PROJECT_SUMMARY.md` | 🟢 大版本 | 开发者 |
+| `COMMANDS.md` | 🟢 工具变更 | 开发者 |
+
+### 最佳实践
+
+1. **AI 工具启动时** → 第一个文件就读 `CONTEXT_CURSOR.md`
+2. **提交代码前** → 检查是否需要更新 `.context/` 下的文件
+3. **大功能开发前** → 先更新 `ROADMAP.md` 再开始编码
+4. **发现问题** → 更新 `CURRENT_STATUS.md` 的"已知问题"表格
+
+*最后更新: 2026-06-27*
