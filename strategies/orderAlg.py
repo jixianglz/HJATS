@@ -6,18 +6,48 @@
   - signal=-1 (死叉): 平多 → 开空
   - signal=0: 持仓不动
 
+配置来源: strategies/config.ini [OrderPara]
+  - order_size: 每单开仓数量 (默认 0.01)
+  - code: 交易对 (默认 ETH-USD)
+
 注意事项:
-  - 交易对固定为 ETH-USD
-  - 每次开仓 0.01 ETH（适配小资金 $100 级别）
   - 通过 orderpool 判断当前持仓方向
 
 接口:
     run(parapoll) -> orderlist
 """
+import os
 import logging
+import configparser
 from src.utils.helpers import print_colored
 
 logger = logging.getLogger(__name__)
+
+
+def _load_order_config():
+    """从 config.ini 加载订单参数"""
+    config_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "strategies", "config.ini"
+    )
+    # 也尝试从当前工作目录查找
+    alt_path = os.path.join(os.getcwd(), "strategies", "config.ini")
+    for path in (config_path, alt_path):
+        if os.path.exists(path):
+            conf = configparser.ConfigParser()
+            conf.read(path)
+            try:
+                return {
+                    'order_size': conf.getfloat('OrderPara', 'order_size', fallback=0.01),
+                    'code': conf.get('OrderPara', 'code', fallback='ETH-USD'),
+                }
+            except Exception:
+                pass
+    return {'order_size': 0.01, 'code': 'ETH-USD'}
+
+
+# 模块级缓存
+_ORDER_CONFIG = _load_order_config()
 
 
 def run(parapoll):
@@ -39,6 +69,9 @@ def run(parapoll):
 
     tick_last_close = float(dataset.iloc[0]['close'])
     orderlist = []
+
+    code = _ORDER_CONFIG['code']
+    size = _ORDER_CONFIG['order_size']
 
     # === 判断当前持仓方向 ===
     has_long = False
@@ -75,7 +108,7 @@ def run(parapoll):
         if has_short:
             close_order = {
                 'uid': open_short_uid,
-                'code': 'ETH-USD',
+                'code': code,
                 'oaction': 'CLOSE',
                 'oside': 'SHORT',
                 'otype': 'MARKET',
@@ -85,11 +118,9 @@ def run(parapoll):
             orderlist.append(close_order)
             print_colored(f'[oAlg] CLOSE SHORT: {open_short_uid}', bg_color='blue')
 
-        # 开多（固定 0.01 ETH，适配 100U 本金）
-        size = 0.01
         open_order = {
             'uid': 'ma_long_1',
-            'code': 'ETH-USD',
+            'code': code,
             'oaction': 'OPEN',
             'oside': 'LONG',
             'otype': 'MARKET',
@@ -97,7 +128,7 @@ def run(parapoll):
             'oprice': str(tick_last_close + 5),  # +5 确保市价成交
         }
         orderlist.append(open_order)
-        print_colored(f'[oAlg] 🟢 OPEN LONG: 0.01 ETH @ ~${tick_last_close:.2f}',
+        print_colored(f'[oAlg] 🟢 OPEN LONG: {size} {code} @ ~${tick_last_close:.2f}',
                       bg_color='blue', bold=True)
 
     # === 死叉信号: signal=-1 → 开空(或平多换空) ===
@@ -111,7 +142,7 @@ def run(parapoll):
         if has_long:
             close_order = {
                 'uid': open_long_uid,
-                'code': 'ETH-USD',
+                'code': code,
                 'oaction': 'CLOSE',
                 'oside': 'LONG',
                 'otype': 'MARKET',
@@ -121,11 +152,9 @@ def run(parapoll):
             orderlist.append(close_order)
             print_colored(f'[oAlg] CLOSE LONG: {open_long_uid}', bg_color='blue')
 
-        # 开空
-        size = 0.01
         open_order = {
             'uid': 'ma_short_1',
-            'code': 'ETH-USD',
+            'code': code,
             'oaction': 'OPEN',
             'oside': 'SHORT',
             'otype': 'MARKET',
@@ -133,7 +162,7 @@ def run(parapoll):
             'oprice': str(tick_last_close - 5),  # -5 确保市价成交
         }
         orderlist.append(open_order)
-        print_colored(f'[oAlg] 🔴 OPEN SHORT: 0.01 ETH @ ~${tick_last_close:.2f}',
+        print_colored(f'[oAlg] 🔴 OPEN SHORT: {size} {code} @ ~${tick_last_close:.2f}',
                       bg_color='blue', bold=True)
 
     # === 无信号 ===

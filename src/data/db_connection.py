@@ -36,8 +36,19 @@ class ATSDBClient:
     def _open_db(self, dbconfig: dict = None):
         """打开数据库连接"""
         if dbconfig is None:
+            # 尝试从 .env 加载 MongoDB 凭据
             uri = 'mongodb://localhost:27017/'
-            logger.info("[DB] Local MongoDB")
+            env_mongo = self._load_mongo_from_env()
+            if env_mongo:
+                u = env_mongo['user']
+                p = env_mongo['passwd']
+                h = env_mongo['host']
+                pt = env_mongo['port']
+                a = env_mongo.get('authSource', 'admin')
+                uri = f'mongodb://{u}:{p}@{h}:{pt}/?authSource={a}'
+                logger.info(f"[DB] Remote MongoDB (from .env): {h}:{pt}")
+            else:
+                logger.info("[DB] Local MongoDB (no .env credentials found)")
         else:
             user = dbconfig['user']
             passwd = dbconfig['passwd']
@@ -131,6 +142,31 @@ class ATSDBClient:
         collection = self.database[name]
         collection.drop()
         logger.info(f"[DB] Collection dropped: {name}")
+
+    @staticmethod
+    def _load_mongo_from_env() -> dict:
+        """从 .env 文件加载 MongoDB 凭据"""
+        import os
+        env_path = os.path.join(os.getcwd(), '.env')
+        if not os.path.exists(env_path):
+            return None
+        creds = {}
+        with open(env_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('MONGODB_USER='):
+                    creds['user'] = line.split('=', 1)[1].strip().strip("'\"")
+                elif line.startswith('MONGODB_PASSWD='):
+                    creds['passwd'] = line.split('=', 1)[1].strip().strip("'\"")
+                elif line.startswith('MONGODB_HOST='):
+                    creds['host'] = line.split('=', 1)[1].strip().strip("'\"")
+                elif line.startswith('MONGODB_PORT='):
+                    creds['port'] = line.split('=', 1)[1].strip().strip("'\"")
+                elif line.startswith('MONGODB_AUTH_SOURCE='):
+                    creds['authSource'] = line.split('=', 1)[1].strip().strip("'\"")
+        if creds.get('user') and creds.get('passwd') and creds.get('host'):
+            return creds
+        return None
 
     def close(self):
         """关闭数据库连接"""

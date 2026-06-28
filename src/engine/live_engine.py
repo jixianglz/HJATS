@@ -67,6 +67,9 @@ class LiveEngine:
         self.monitor_interval = self.conf.getint("LiveEngine", "monitor_interval", fallback=30)
         self.risk_max_daily_loss_pct = self.conf.getfloat("LiveEngine", "risk_max_daily_loss_pct", fallback=5.0)
         self.risk_max_position = self.conf.getfloat("LiveEngine", "risk_max_position", fallback=0.05)
+        self.risk_max_consecutive_losses = self.conf.getint("LiveEngine", "risk_max_consecutive_losses", fallback=3)
+        self.risk_max_daily_trades = self.conf.getint("LiveEngine", "risk_max_daily_trades", fallback=50)
+        self.risk_min_balance = self.conf.getfloat("LiveEngine", "risk_min_balance", fallback=10.0)
 
         # 组件
         self.broker = BinanceBroker()
@@ -81,6 +84,12 @@ class LiveEngine:
                            "finish_num": 0, "holding_num": 0}
         self.order_pool = {}  # uid -> dict
         self.balance = 0.0
+
+        # 风控状态追踪
+        self._consecutive_losses = 0
+        self._daily_trade_count = 0
+        self._daily_loss_total = 0.0
+        self._last_daily_reset = datetime.now().strftime("%Y-%m-%d")
 
         # 线程控制
         self._strategy_timer = None
@@ -298,6 +307,15 @@ class LiveEngine:
                         pos_size = pos.get("size", osize)
                         profit = (current_price - entry) * pos_size if oside == "LONG" else (entry - current_price) * pos_size
                         self.balance += profit
+
+                        # 风控追踪
+                        self._daily_trade_count += 1
+                        if profit > 0:
+                            self._consecutive_losses = 0
+                        elif profit < 0:
+                            self._consecutive_losses += 1
+                            self._daily_loss_total += abs(profit)
+
                         # 移除已平仓的订单
                         if order["uid"] in self.order_pool:
                             del self.order_pool[order["uid"]]
@@ -377,9 +395,23 @@ class LiveEngine:
                 datetime.now().strftime("%H:%M:%S"))
             self.status.set_engine_status("monitor_ok", True)
 
-            # 4. 风控检查
+            # 4. 重置每日统计（跨天检测）
+            today = datetime.now().strftime("%Y-%m-%d")
+            if today != self._last_daily_reset:
+                self._daily_trade_count = 0
+                self._daily_loss_total = 0.0
+                self._consecutive_losses = 0
+                self._last_daily_reset = today
+                self.status.data["account"]["daily_start"] = self.balance
+                self.status.data["daily"]["start_balance"] = self.balance
+                self.status.data["daily"]["start_date"] = today
+                logger.info("[Risk] 每日统计已重置")
+
+            # 5. 风控检查
             daily_pnl = self.status.data["account"]["daily_pnl"]
             start_balance = self.status.data["account"].get("daily_start", self.balance)
+
+            # 5a. 日亏损百分比
             if start_balance > 0:
                 loss_pct = abs(daily_pnl) / start_balance * 100
                 if daily_pnl < 0 and loss_pct > self.risk_max_daily_loss_pct:
@@ -387,6 +419,27 @@ class LiveEngine:
                                   bg_color="red", bold=True)
                     self.pause()
                     self.status.add_error(f"风控触发: 当日亏损 {loss_pct:.1f}%")
+
+            # 5b. 连续亏损笔数
+            if self._consecutive_losses >= self.risk_max_consecutive_losses:
+                print_colored(f"[LiveEngine] ⚠️ 连续亏损 {self._consecutive_losses} 笔 超过限额 {self.risk_max_consecutive_losses}，暂停策略",
+                              bg_color="red", bold=True)
+                self.pause()
+                self.status.add_error(f"风控触发: 连续亏损 {self._consecutive_losses} 笔")
+
+            # 5c. 最低余额保护
+            if self.balance < self.risk_min_balance:
+                print_colored(f"[LiveEngine] ⛔ 余额 ${self.balance:.2f} 低于最低保护 ${self.risk_min_balance:.2f}，紧急停止",
+                              bg_color="red", bold=True)
+                self.stop()
+                self.status.add_error(f"风控触发: 余额 ${self.balance:.2f} 低于最低保护")
+
+            # 5d. 日交易笔数上限
+            if self._daily_trade_count >= self.risk_max_daily_trades:
+                print_colored(f"[LiveEngine] ⚠️ 日交易 {self._daily_trade_count} 笔已达上限 {self.risk_max_daily_trades}，暂停策略",
+                              bg_color="red", bold=True)
+                self.pause()
+                self.status.add_error(f"风控触发: 日交易笔数 {self._daily_trade_count}")
 
             self.status.save()
 

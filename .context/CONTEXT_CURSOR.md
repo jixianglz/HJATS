@@ -49,12 +49,13 @@ DriverProcessor (DP) →[queue]→ StrategyManager (SM) →[queue]→ OrderManag
 | `strategies/config.ini` | 策略配置 |
 | `scripts/fetch_data.py` | 数据下载工具 |
 | `scripts/report_generator.py` | 报告生成器 |
+| `scripts/hjats_agent.py` | AI 协同接口（OpenClaw/Cline 共用） |
 | `.env.example` | API Key 模板 |
 | `requirements.txt` | 依赖清单 |
 
 ---
 
-## 🎯 当前状态速览
+## 🎯 当前状态速览（2026-06-28）
 
 ### ✅ 工作正常的
 - 数据下载（分批自动下载 Binance K线）
@@ -62,19 +63,24 @@ DriverProcessor (DP) →[queue]→ StrategyManager (SM) →[queue]→ OrderManag
 - 报告生成（Plotly HTML，含K线图+买卖点+收益曲线）
 - 双均线策略（MA10/30 Crossover）
 - 三线程引擎基本流程（DP→SM→OM）
+- **测试框架**：22 tests 全部通过（含 LiveEngine 6 tests）✅
+- **Bug 修复**：LiveEngine 4 个 Bug 已修（开仓记录/平仓盈亏/清池/监控间隔）✅
+- **AI 协同接口**：`scripts/hjats_agent.py` 已就绪 ✅
+- **BinanceBroker 连接验证**：API Key 加载 + 余额查询正常 ($20) ✅
+- **配置外部化**：策略参数 (order_size/code) 已迁移到 config.ini ✅
+- **敏感信息脱敏**：MongoDB 密码已从 config.ini 移除，迁移到 .env ✅
+- **LiveEngine 多层风控**：日亏损%/连续亏损/最低余额/日交易笔数上限 ✅
 
 ### ⚠️ 需要注意的
 - Git + 测试框架已完备 ✅
 - `modules_github/` 是旧版代码，与新 `src/` 并存
-- pytest 测试框架已搭建（16 tests, 4 files）✅
-- 实盘模式未充分验证
-- `config.ini` 含明文 MongoDB 密码
+- **实盘端到端验证（需手动启动 LiveEngine 跑一段时间）** ← 下一步
+- `.env` 需手动配置（已从 `.env.example` 恢复模板）
 
 ### ❌ 已知问题
-1. config.ini 含明文 MongoDB 密码
-2. 策略参数硬编码（0.01 ETH）
-3. 0 测试金，安全风险可控
-# 新增测试命令
+1. ~~config.ini 含明文 MongoDB 密码~~ → 已修复 ✅
+2. ~~策略参数硬编码（0.01 ETH）~~ → 已修复 ✅
+3. $20 测试金，安全风险可控（风控已加最低余额保护 $10）
 
 ---
 
@@ -103,8 +109,17 @@ python scripts/report_generator.py \
     --report-json reports/xxx.json \
     --trades-csv reports/xxx_trades.csv \
     --equity-csv reports/xxx_equity.csv
-```
 
+# 运行测试
+python3 -m pytest tests/ -v
+
+# 查看实盘状态
+python3 scripts/hjats_agent.py status
+
+# 后台启动实盘（OpenClaw 用）
+python3 scripts/hjats_agent.py start-live
+```
+				
 ---
 
 ## 📚 更多上下文
@@ -118,4 +133,4 @@ python scripts/report_generator.py \
 - `STRATEGIES.md` — 策略开发指南
 - `API_REFERENCE.md` — 核心 API 速查
 - `COMMANDS.md` — 命令速查
-- `TESTING.md` — 测试指南（16 tests）
+- `TESTING.md` — 测试指南（22 tests）
