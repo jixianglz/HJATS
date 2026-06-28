@@ -60,7 +60,7 @@ DriverProcessor (DP) →[queue]→ StrategyManager (SM) →[queue]→ OrderManag
 ### ✅ 工作正常的
 - 数据下载（分批自动下载 Binance K线）
 - 简化回测（`run_backtest.py` — 单线程，完整盈亏统计）
-- 报告生成（Plotly HTML，含K线图+买卖点+收益曲线）
+- 报告生成（Plotly HTML，含K线图+买卖点+收益曲线，`http://localhost:8081`）
 - 双均线策略（MA10/30 Crossover）
 - 三线程引擎基本流程（DP→SM→OM）
 - **测试框架**：22 tests 全部通过（含 LiveEngine 6 tests）✅
@@ -70,17 +70,21 @@ DriverProcessor (DP) →[queue]→ StrategyManager (SM) →[queue]→ OrderManag
 - **配置外部化**：策略参数 (order_size/code) 已迁移到 config.ini ✅
 - **敏感信息脱敏**：MongoDB 密码已从 config.ini 移除，迁移到 .env ✅
 - **LiveEngine 多层风控**：日亏损%/连续亏损/最低余额/日交易笔数上限 ✅
+- **实盘冷启动预热**：`_warmup_data()` 启动时拉取 100 根历史 K 线，MA30 立即可用 ✅
+- **Frequency = 5m**：OpenClaw 发现并修复 15m→5m，MA30 窗口从 7.5h 缩至 2.5h ✅
+- **回测产物路径**：json/csv 统一输出到 `reports/`，根目录保持干净 ✅
+- **.clinerules**：回测标准流程已沉淀 ✅
 
 ### ⚠️ 需要注意的
-- Git + 测试框架已完备 ✅
 - `modules_github/` 是旧版代码，与新 `src/` 并存
-- **实盘端到端验证（需手动启动 LiveEngine 跑一段时间）** ← 下一步
+- **实盘已启动运行中** ✅ ← 等待交叉信号触发交易验证
 - `.env` 需手动配置（已从 `.env.example` 恢复模板）
 
-### ❌ 已知问题
+### ❌ 已清理的旧问题
 1. ~~config.ini 含明文 MongoDB 密码~~ → 已修复 ✅
 2. ~~策略参数硬编码（0.01 ETH）~~ → 已修复 ✅
-3. $20 测试金，安全风险可控（风控已加最低余额保护 $10）
+3. ~~实盘冷启动 MA30 计算延迟~~ → 已修复 (`_warmup_data`) ✅
+4. ~~回测文件散落根目录~~ → 已修复 (统一 `reports/`) ✅
 
 ---
 

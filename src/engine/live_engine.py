@@ -70,6 +70,7 @@ class LiveEngine:
         self.risk_max_consecutive_losses = self.conf.getint("LiveEngine", "risk_max_consecutive_losses", fallback=3)
         self.risk_max_daily_trades = self.conf.getint("LiveEngine", "risk_max_daily_trades", fallback=50)
         self.risk_min_balance = self.conf.getfloat("LiveEngine", "risk_min_balance", fallback=10.0)
+        self.n_history_counts = self.conf.getint("AlgPara", "nHistoryCounts", fallback=100)
 
         # 组件
         self.broker = BinanceBroker()
@@ -127,6 +128,9 @@ class LiveEngine:
             self.running = False
             return
 
+        # 预热历史数据
+        self._warmup_data()
+
         # 启动双循环
         self.status.data["engine_running"] = True
         self.status.data["engine_paused"] = False
@@ -166,6 +170,29 @@ class LiveEngine:
         print_colored("[LiveEngine] ▶ 策略已恢复", bg_color="green")
         if not self._strategy_timer or not self._strategy_timer.is_alive():
             self._schedule_strategy()
+
+    def _warmup_data(self):
+        """启动时预拉取历史K线，避免冷启动 MA30 计算不足"""
+        try:
+            candles = self.market.get_price_v1(
+                code=self.code, count=self.n_history_counts,
+                frequency=self.frequency
+            )
+            if candles is not None and len(candles) > 0:
+                # 倒序 (head=最新)
+                self.storj = candles.iloc[::-1]
+                if len(self.storj) > 100:
+                    self.storj = self.storj.iloc[:100]
+                print_colored(
+                    f"[LiveEngine] 🔥 预热完成: {len(self.storj)} 根历史K线",
+                    bg_color="blue"
+                )
+                logger.info("Warmup: loaded %d candles", len(self.storj))
+            else:
+                logger.warning("Warmup: no candles returned")
+        except Exception as e:
+            logger.warning("Warmup failed (will accumulate live): %s", e)
+            print_colored(f"[LiveEngine] 预热失败: {e}", bg_color="yellow")
 
     def _cancel_timers(self):
         """取消所有定时器"""

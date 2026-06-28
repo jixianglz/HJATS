@@ -1,0 +1,48 @@
+# HJATS Project Rules for Cline
+
+## 回测流程
+
+当用户要求"跑回测"或"backtest"时，执行以下标准流程：
+
+### 1. 下载数据
+```bash
+python3 scripts/fetch_data.py --symbol ETHUSDT --interval 5m --days 1
+```
+
+### 2. 运行回测
+```bash
+python3 run_backtest.py --data data/<csv_file> --balance <amount>
+```
+
+### 3. 生成报告
+```bash
+python3 scripts/report_generator.py \
+    --data-file data/<csv_file> \
+    --report-json reports/backtest_report_<timestamp>.json \
+    --trades-csv reports/backtest_report_<timestamp>_trades.csv \
+    --equity-csv reports/backtest_report_<timestamp>_equity.csv \
+    --output-dir reports
+```
+
+### 4. 启动报告服务器（如未运行）
+```bash
+cd reports && python3 report_server.py
+# 访问 http://localhost:8081
+```
+
+## 实盘相关
+
+- 查看状态: `cat /tmp/live_status.json | python3 -m json.tool`
+- 查看日志: `tail -50 /tmp/live_engine.log`
+- 启动实盘: `python3 -m src.engine.live_engine`
+
+## 配置
+
+- API密钥: `.env` (不进入Git)
+- 策略参数: `strategies/config.ini`
+- 模板: `.env.example`
+
+## 测试
+
+```bash
+python3 -m pytest tests/ -v

@@ -333,7 +333,9 @@ class BacktestEngine:
             "profit_factor": round(profit_factor, 2),
         }
 
-        report_path = f"backtest_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        import os as _os
+        _os.makedirs("reports", exist_ok=True)
+        report_path = f"reports/backtest_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         with open(report_path, 'w', encoding='utf-8') as f:
             json.dump(report, f, indent=2, ensure_ascii=False)
         print(f"\n报告已保存: {report_path}")
