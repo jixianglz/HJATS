@@ -61,7 +61,7 @@ def cmd_start_live():
     """后台启动实盘引擎"""
     logfile = "/tmp/live_engine.log"
     proc = subprocess.Popen(
-        [sys.executable, "-m", "src.engine.live_engine"],
+        [sys.executable, "run_live.py"],
         cwd=HJATS_PATH,
         stdout=open(logfile, 'w'),
         stderr=subprocess.STDOUT,
@@ -77,7 +77,7 @@ def cmd_start_live():
 def cmd_stop_live():
     """停止实盘引擎"""
     import signal
-    result = subprocess.run(["pgrep", "-f", "src.engine.live_engine"],
+    result = subprocess.run(["pgrep", "-f", "run_live.py"],
                           capture_output=True, text=True)
     pids = result.stdout.strip().split('\n')
     killed = 0

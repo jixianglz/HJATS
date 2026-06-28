@@ -32,9 +32,11 @@ cd reports && python3 report_server.py
 
 ## 实盘相关
 
+- 启动实盘: `python3 run_live.py`
 - 查看状态: `cat /tmp/live_status.json | python3 -m json.tool`
 - 查看日志: `tail -50 /tmp/live_engine.log`
-- 启动实盘: `python3 -m src.engine.live_engine`
+- 后台启动: `nohup python3 run_live.py > /tmp/live_engine.log 2>&1 &`
+- 停止: `python3 scripts/hjats_agent.py stop-live`
 
 ## 配置
 
