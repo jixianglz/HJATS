@@ -30,6 +30,7 @@ from src.engine.strategy import StrategyManager
 from src.engine.order_manager import OrderManager
 from src.engine.risk_manager import RiskManager
 from src.engine.live_status import LiveStatus, STATUS_FILE
+from src.data.live_logger import LiveLogger
 
 logger = setup_logger("HJATS_Live", log_level=logging.INFO)
 
@@ -101,6 +102,10 @@ def main():
     live_status.data["engine_running"] = True
     live_status.data["engine_paused"] = False
     live_status.save()
+
+    # 3.5 实盘持久化日志
+    live_log = LiveLogger()
+    print_colored(f"[Live] 日志目录: {live_log.session_dir}", bg_color="blue")
 
     # 4. 组装三线程管道
     import queue
@@ -180,6 +185,14 @@ def main():
                 live_status.set_engine_status("monitor_ok", True)
                 live_status.save()
 
+                # 持久化监控 tick
+                mon_ts = time.strftime("%Y-%m-%d %H:%M:%S")
+                mon_price = live_status.data["position"].get("current_price", 0)
+                live_log.log_monitor_tick(
+                    mon_ts, current_balance, mon_price,
+                    risk_action=risk_result.get("action", ""),
+                    risk_reason=risk_result.get("reason", ""))
+
             # === 策略循环 ===
             if not risk_mgr.paused and now - strategy_last >= strategy_interval:
                 strategy_last = now
@@ -215,12 +228,22 @@ def main():
                             break
 
                         # 更新信号 + 指标
+                        tick_ts = time.strftime("%Y-%m-%d %H:%M:%S")
                         if dm.signal:
                             latest_indicators = {}
                             for k, v in dm.indicators.items():
                                 if v:
                                     latest_indicators[k] = v[-1]
                             live_status.update_signal(dm.signal[-1], latest_indicators)
+
+                            # 持久化策略 tick
+                            close_price = float(dm.storj.iloc[0]["close"])
+                            ma10_val = latest_indicators.get("ind1")
+                            ma30_val = latest_indicators.get("ind2")
+                            live_log.log_strategy_tick(
+                                tick_ts, dm.signal[-1],
+                                ma10=ma10_val, ma30=ma30_val,
+                                close=close_price, balance=current_balance)
 
                 except Exception as e:
                     logger.error(f"Strategy tick error: {e}")
