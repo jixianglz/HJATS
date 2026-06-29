@@ -90,8 +90,8 @@ class StrategyManager(threading.Thread):
                     logger.info("[SM] DP stopped, exiting")
 
             except Exception as e:
-                logger.exception(f"[SM] Error: {e}")
-                break
+                logger.exception(f"[SM] Error (recovering): {e}")
+                continue
             finally:
                 self.queue.task_done()
 

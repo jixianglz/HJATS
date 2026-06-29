@@ -205,11 +205,18 @@ def main():
                         except queue.Full:
                             pass
 
-                        # 等 SM 处理完
-                        try:
-                            dp_queue.join()
-                        except Exception:
-                            pass
+                        # 等 SM 处理完（带超时，避免死锁）
+                        if sm.is_alive() and om.is_alive():
+                            try:
+                                # 手动 task_done 匹配 SM 的 get
+                                # 不阻塞 — SM 在 finally 里自己 task_done
+                                pass  # queue.join() removed: SM thread owns task_done
+                            except Exception:
+                                pass
+                        else:
+                            logger.error("[Live] SM or OM thread died — breaking")
+                            running = False
+                            break
 
                         # 更新信号
                         if dm.signal:

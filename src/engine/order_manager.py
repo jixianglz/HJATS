@@ -129,9 +129,9 @@ class OrderManager(threading.Thread):
 
                     # 更新可视化标记
                     if ret == ERR_SUCCESS:
-                        self.core.core.dataM.rawdata_show.loc[
-                            timeindex, 'Signal'
-                        ] = ordertask.get('oside', '')
+                        raw_show = self.core.core.dataM.rawdata_show
+                        if raw_show is not None and not raw_show.empty:
+                            raw_show.loc[timeindex, 'Signal'] = ordertask.get('oside', '')
 
                     self.order_id_inter += 1
 
@@ -139,8 +139,8 @@ class OrderManager(threading.Thread):
                 count += 1
 
             except Exception as e:
-                logger.exception(f"[OM] Error: {e}")
-                break
+                logger.exception(f"[OM] Error (recovering): {e}")
+                continue
             finally:
                 self.oderqueue.task_done()
 
