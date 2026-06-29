@@ -42,6 +42,7 @@ class StrategyManager(threading.Thread):
         self.DPtype = self.core.dp_type
         self.task = None
         self.count = 0
+        self.processing_done = threading.Event()  # 主循环通知 SM 已完成一轮
 
     def run(self):
         """主循环：等待数据，执行策略"""
@@ -82,6 +83,7 @@ class StrategyManager(threading.Thread):
 
                 logger.info(f"[SM] Task {self.count} done")
                 self.count += 1
+                self.processing_done.set()  # 通知主循环本轮完成
 
                 # 检查 DP 是否已停止
                 if self.core.thread_stop:
@@ -91,6 +93,7 @@ class StrategyManager(threading.Thread):
 
             except Exception as e:
                 logger.exception(f"[SM] Error (recovering): {e}")
+                self.processing_done.set()  # 异常也要通知，防止主循环死等
                 continue
             finally:
                 self.queue.task_done()

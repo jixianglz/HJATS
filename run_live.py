@@ -205,22 +205,22 @@ def main():
                         except queue.Full:
                             pass
 
-                        # 等 SM 处理完（带超时，避免死锁）
+                        # 等 SM 处理完（Event 机制，避免死锁）
                         if sm.is_alive() and om.is_alive():
-                            try:
-                                # 手动 task_done 匹配 SM 的 get
-                                # 不阻塞 — SM 在 finally 里自己 task_done
-                                pass  # queue.join() removed: SM thread owns task_done
-                            except Exception:
-                                pass
+                            sm.processing_done.clear()
+                            sm.processing_done.wait(timeout=5.0)
                         else:
                             logger.error("[Live] SM or OM thread died — breaking")
                             running = False
                             break
 
-                        # 更新信号
+                        # 更新信号 + 指标
                         if dm.signal:
-                            live_status.update_signal(dm.signal[-1], {})
+                            latest_indicators = {}
+                            for k, v in dm.indicators.items():
+                                if v:
+                                    latest_indicators[k] = v[-1]
+                            live_status.update_signal(dm.signal[-1], latest_indicators)
 
                 except Exception as e:
                     logger.error(f"Strategy tick error: {e}")
