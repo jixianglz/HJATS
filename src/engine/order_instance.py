@@ -96,7 +96,10 @@ class OrderInstance:
 
         # --- Live mode: use broker result ---
         if broker_result and broker_result.get('success'):
-            deal_price = broker_result.get('deal_price', deal_price)
+            deal_price = broker_result.get('deal_price', None)
+            if deal_price is None or deal_price <= 0:
+                # Broker 未返回成交价（市价单），用 TickPrice 兜底
+                deal_price = float(forder[12])
             self.size = round(self.size + float(forder[9]), self.precision)
             self.totalvalue += round(deal_price * float(forder[9]), 6)
             self.aveprice = self.totalvalue / self.size if self.size > 0 else 0
