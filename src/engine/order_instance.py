@@ -80,35 +80,50 @@ class OrderInstance:
         self.osize = round(float(forder[9]), self.precision)
         self.openprice = round(float(forder[10]), 6)
 
-    def inc_position(self, forder: list) -> int:
+    def inc_position(self, forder: list, broker_result: dict = None) -> int:
         """
         增加持仓（开仓/加仓）
 
         Args:
             forder: 订单数据
+            broker_result: 实盘 broker 返回结果 (live mode)
 
         Returns:
             int: 错误码 (0=成功)
         """
         self._update_by_forder(forder)
+        deal_price = float(forder[12])
 
-        if self.dex == 'backtest' and self.status == 'processing':
+        # --- Live mode: use broker result ---
+        if broker_result and broker_result.get('success'):
+            deal_price = broker_result.get('deal_price', deal_price)
             self.size = round(self.size + float(forder[9]), self.precision)
-            self.totalvalue += round(float(forder[12]) * float(forder[9]), 6)
+            self.totalvalue += round(deal_price * float(forder[9]), 6)
             self.aveprice = self.totalvalue / self.size if self.size > 0 else 0
             self.action = ORDER_ACTION_OPEN
-            self.dealprice = forder[12]
+            self.dealprice = deal_price
+            self.status = broker_result.get('status', self.status)
+            return ERR_SUCCESS
+
+        # --- Backtest mode ---
+        if self.dex == 'backtest' and self.status == 'processing':
+            self.size = round(self.size + float(forder[9]), self.precision)
+            self.totalvalue += round(deal_price * float(forder[9]), 6)
+            self.aveprice = self.totalvalue / self.size if self.size > 0 else 0
+            self.action = ORDER_ACTION_OPEN
+            self.dealprice = deal_price
             return ERR_SUCCESS
 
         logger.warning(f"incPosition not implemented for dex={self.dex}")
         return 0x1
 
-    def dec_position(self, forder: list) -> tuple:
+    def dec_position(self, forder: list, broker_result: dict = None) -> tuple:
         """
         减少持仓（减仓/平仓）
 
         Args:
             forder: 订单数据
+            broker_result: 实盘 broker 返回结果 (live mode)
 
         Returns:
             tuple: (closeprofit, error_code)
@@ -117,6 +132,43 @@ class OrderInstance:
         close_size = float(forder[9])
         tick_price = round(float(forder[12]), 6)
 
+        # --- Live mode: use broker result ---
+        if broker_result and broker_result.get('success'):
+            deal_price = broker_result.get('deal_price', tick_price)
+            if round(self.size - close_size, self.precision) < 0:
+                logger.error(f"Close size exceeds holding: hold={self.size}, "
+                              f"req={close_size}")
+                return self.closeprofit, ERR_ORDER_SIZE_EXCEED
+
+            # 部分平仓
+            if round(self.size - close_size, self.precision) != 0:
+                if self.side == 'LONG':
+                    self.closeprofit += (deal_price - self.aveprice) * close_size
+                else:
+                    self.closeprofit -= (deal_price - self.aveprice) * close_size
+
+                self.size = round(self.size - close_size, self.precision)
+                self.totalvalue -= round(deal_price * close_size, 6)
+                self.aveprice = self.totalvalue / self.size if self.size > 0 else 0
+                self.action = ORDER_ACTION_CLOSE
+                self.dealprice = deal_price
+                return self.closeprofit, ERR_SUCCESS
+
+            # 完全平仓
+            self.closeprice = deal_price
+            if self.side == 'LONG':
+                self.closeprofit += (deal_price - self.aveprice) * self.size
+            else:
+                self.closeprofit -= (deal_price - self.aveprice) * self.size
+
+            self.status = 'finished'
+            self.action = ORDER_ACTION_CLOSE
+            self.size = round(self.size - close_size, self.precision)
+            self.totalvalue = 0.0
+            self.dealprice = deal_price
+            return self.closeprofit, ERR_SUCCESS
+
+        # --- Backtest mode ---
         if self.dex == 'backtest' and self.status == 'processing':
             # 检查平仓量是否超过持仓
             if round(self.size - close_size, self.precision) < 0:

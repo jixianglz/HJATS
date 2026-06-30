@@ -66,7 +66,6 @@ class BinanceBroker(BrokerBase):
             params = {
                 'symbol': code,
                 'side': side,
-                'positionSide': oside,
                 'type': otype,
                 'quantity': float(osize),
             }
@@ -114,7 +113,6 @@ class BinanceBroker(BrokerBase):
             params = {
                 'symbol': code,
                 'side': side,
-                'positionSide': oside,
                 'type': otype,
                 'quantity': float(osize),
             }

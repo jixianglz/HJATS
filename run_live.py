@@ -138,6 +138,7 @@ def main():
         order_manager_id=3, order_manager_name='OM_Live',
         st_manager=sm, dp_core=dp,
         broker=broker,
+        live_log=live_log,
     )
     om.DPtype = "realtime"
 

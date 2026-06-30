@@ -130,6 +130,7 @@ class StrategyManager(threading.Thread):
 
         # 执行订单算法
         parapoll['c_signal'] = signal
+        parapoll['cur_indicators'] = cur_ind_dic  # 当前MA指标，供orderAlg兜底判断
         parapoll['orderpool'] = self.core.dataM.orderpool
         parapoll['orderaccount'] = self.core.dataM.account
         parapoll['order_statistic'] = self.core.dataM.order_statistic

@@ -29,7 +29,7 @@ class OrderManager(threading.Thread):
 
     def __init__(self, order_manager_id: int, order_manager_name: str,
                  st_manager, dp_core,
-                 broker=None):
+                 broker=None, live_log=None):
         """
         Args:
             order_manager_id: 线程ID
@@ -37,6 +37,7 @@ class OrderManager(threading.Thread):
             st_manager: 策略管理器引用 (获取订单队列)
             dp_core: 驱动处理器引用 (获取数据管理器)
             broker: 交易所适配器 (None=回测模拟)
+            live_log: LiveLogger 实例 (实盘持久化日志, None=不回写)
         """
         threading.Thread.__init__(self)
         self.threadID = order_manager_id
@@ -46,6 +47,7 @@ class OrderManager(threading.Thread):
         self.thread_stop = False
         self.core = st_manager
         self.broker = broker
+        self.live_log = live_log
         self.dp_type = getattr(st_manager, 'DPtype', 'backtest')
         self.order_id_inter = 0
 
@@ -188,6 +190,9 @@ class OrderManager(threading.Thread):
         """
         处理单个订单（开仓/平仓）
 
+        Live mode: 通过 self.broker 向交易所下单后更新内部状态
+        Backtest mode: 直接更新 OrderInstance 内部状态
+
         Args:
             forder: 格式化后的订单列表
 
@@ -197,22 +202,60 @@ class OrderManager(threading.Thread):
         oaction = forder[3]
         ouid = forder[2]
         oside = forder[8]
+        code = forder[7]    # market / symbol
+        osize = float(forder[9])
+        otype = forder[4]   # MARKET / LIMIT
+        is_live = (self.dp_type == "realtime" and self.broker is not None)
+
+        # --- Broker 下单（仅实盘） ---
+        broker_result = None
+        tick_ts = pd.Timestamp.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+        if is_live:
+            if oaction == ORDER_ACTION_OPEN:
+                broker_result = self.broker.order_open(
+                    code=code, oside=oside, otype=otype,
+                    osize=osize, oprice=float(forder[10]) if otype == 'LIMIT' else None)
+                if broker_result and broker_result.get('success'):
+                    deal_price = broker_result.get('deal_price', 0)
+                    logger.info(f"[OM] OPEN submitted: {oside} {osize}@{deal_price}")
+                else:
+                    logger.error(f"[OM] OPEN failed: {broker_result}")
+            elif oaction == ORDER_ACTION_CLOSE:
+                broker_result = self.broker.order_close(
+                    code=code, oside=oside, otype=otype,
+                    osize=osize, oprice=float(forder[10]) if otype == 'LIMIT' else None)
+                if broker_result and broker_result.get('success'):
+                    deal_price = broker_result.get('deal_price', 0)
+                    logger.info(f"[OM] CLOSE submitted: {oside} {osize}@{deal_price}")
+                else:
+                    logger.error(f"[OM] CLOSE failed: {broker_result}")
 
         if oaction == ORDER_ACTION_OPEN:
             # 创建新订单
+            is_new = False
             if ouid not in self.orderpool:
                 logger.info(f"[OM] Creating new order: {ouid}")
                 new_order = OrderInstance(forder)
                 self.orderpool[ouid] = new_order
                 self.order_statistic['totalnumber'] += 1
                 self.order_statistic['holding_num'] += 1
+                is_new = True
 
             # 方向检查
             if self.orderpool[ouid].side != oside:
                 logger.error(f"[OM] Side mismatch: {self.orderpool[ouid].side} != {oside}")
                 return ERR_ORDER_SIDE_MISMATCH
 
-            ret = self.orderpool[ouid].inc_position(forder)
+            ret = self.orderpool[ouid].inc_position(forder, broker_result)
+
+            # 成交日志 (新开仓或加仓)
+            if ret == ERR_SUCCESS and self.live_log:
+                order_inst = self.orderpool[ouid]
+                self.live_log.log_trade(
+                    tick_ts, "OPEN", oside,
+                    osize, order_inst.dealprice or float(forder[12]))
+
             return ret
 
         elif oaction == ORDER_ACTION_CLOSE:
@@ -224,7 +267,7 @@ class OrderManager(threading.Thread):
                 logger.error(f"[OM] Side mismatch for close: {oside}")
                 return ERR_ORDER_SIDE_MISMATCH
 
-            closeprofit, ret = self.orderpool[ouid].dec_position(forder)
+            closeprofit, ret = self.orderpool[ouid].dec_position(forder, broker_result)
 
             # 更新账户
             self.core.core.dataM.account['asset'] += closeprofit
@@ -242,6 +285,14 @@ class OrderManager(threading.Thread):
                     self.order_statistic['loss_num'] += 1
                     self.order_statistic['win_win_count'] = 0
                     self.order_statistic['loss_loss_count'] += 1
+
+            # 成交日志
+            if ret == ERR_SUCCESS and self.live_log:
+                deal_price = self.orderpool.get(ouid, None)
+                deal_price = deal_price.dealprice if deal_price else float(forder[12])
+                self.live_log.log_trade(
+                    tick_ts, "CLOSE", oside,
+                    osize, deal_price, closeprofit)
 
             return ret
 

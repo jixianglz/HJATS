@@ -8,7 +8,7 @@
 
 配置来源: strategies/config.ini [OrderPara]
   - order_size: 每单开仓数量 (默认 0.01)
-  - code: 交易对 (默认 ETH-USD)
+  - code: 交易对 (默认 ETHUSDT)
 
 注意事项:
   - 通过 orderpool 判断当前持仓方向
@@ -43,7 +43,7 @@ def _load_order_config():
                 }
             except Exception:
                 pass
-    return {'order_size': 0.01, 'code': 'ETH-USD'}
+    return {'order_size': 0.01, 'code': 'ETHUSDT'}
 
 
 # 模块级缓存
@@ -166,8 +166,47 @@ def run(parapoll):
                       bg_color='blue', bold=True)
 
     # === 无信号 ===
-    else:
-        print_colored(f'[oAlg] No signal, hold current position', bg_color='blue')
+    if signal == 0:
+        # === 兜底：空仓且均线方向明确 → 补开仓（应对重启/下单失败） ===
+        cur_ind = parapoll.get('cur_indicators', {})
+        ma10_val = cur_ind.get('ind1')
+        ma30_val = cur_ind.get('ind2')
+
+        if not has_long and not has_short and ma10_val and ma30_val:
+            gap = ma10_val - ma30_val
+            if gap > 0.5:
+                # MA10 明显在 MA30 上方，空仓 → 开多
+                open_order = {
+                    'uid': 'ma_long_1',
+                    'code': code,
+                    'oaction': 'OPEN',
+                    'oside': 'LONG',
+                    'otype': 'MARKET',
+                    'osize': str(size),
+                    'oprice': str(tick_last_close + 5),
+                }
+                orderlist.append(open_order)
+                print_colored(f'[oAlg] 🟢 CATCHUP LONG: {size} {code} @ ~${tick_last_close:.2f} '
+                              f'(gap=${gap:.2f})',
+                              bg_color='blue', bold=True)
+            elif gap < -0.5:
+                # MA10 明显在 MA30 下方，空仓 → 开空
+                open_order = {
+                    'uid': 'ma_short_1',
+                    'code': code,
+                    'oaction': 'OPEN',
+                    'oside': 'SHORT',
+                    'otype': 'MARKET',
+                    'osize': str(size),
+                    'oprice': str(tick_last_close - 5),
+                }
+                orderlist.append(open_order)
+                print_colored(f'[oAlg] 🔴 CATCHUP SHORT: {size} {code} @ ~${tick_last_close:.2f} '
+                              f'(gap=${gap:.2f})',
+                              bg_color='blue', bold=True)
+
+        if not orderlist:
+            print_colored(f'[oAlg] No signal, hold current position', bg_color='blue')
 
     print_colored(f'[oAlg] Orders generated: {len(orderlist)}', bg_color='blue')
     return orderlist
