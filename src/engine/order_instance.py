@@ -137,7 +137,9 @@ class OrderInstance:
 
         # --- Live mode: use broker result ---
         if broker_result and broker_result.get('success'):
-            deal_price = broker_result.get('deal_price', tick_price)
+            deal_price = broker_result.get('deal_price', None)
+            if deal_price is None or deal_price <= 0:
+                deal_price = tick_price
             if round(self.size - close_size, self.precision) < 0:
                 logger.error(f"Close size exceeds holding: hold={self.size}, "
                               f"req={close_size}")
